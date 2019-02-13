@@ -3,29 +3,24 @@
 @created: 19.10.2018
 @brief: Handling data for transmitting over network
 @description:
-all available packets:
--Function_packet:
--Status_packet:
--Data_packet:
--File_meta_packet:
 
-general packet byte string:
-<packet_byte_string_len><function_id><inner_id><outer_id><packet_cls_id><specific_packet_data>
-
+Data Types that can be packed (and their limitations):
+    int: 4 bytes
+    float: None known
+    str: max length ~2**32 (at larger strings the PC runs out of RAM and crashes)
+    dict: None known
+    tuple: None known
+    bytes: None known
+    bool: None
+    NoneType: None
 
 @external_use:
 
-packet = <cls>_packet(args)
-byte_string = packet.pack()
-same_packet = Packet.unpack(byte_string)
-
-
 @internal_use:
-New <cls>_packet:
-    extend from packet
-    implement: pack, unpack, __eq__, __str__
-    add to packets
+
 """
+import json
+import types as builtinTypes
 
 from .utils import Ddict
 from .Logging import logger
@@ -44,7 +39,8 @@ types = Ddict({
     dict:   0x005,
     tuple:  0x006,
     bytes:  0x007,
-    bool:   0x008
+    bool:   0x008,
+    type(None):   0x009,
 })
 
 
@@ -66,14 +62,17 @@ def _pack(*args):
             byte_string += int.to_bytes(len(b_value), NUM_INT_BYTES, BYTEORDER)
             byte_string += b_value
         elif val_type is str:
-            byte_string += int.to_bytes(len(value), NUM_INT_BYTES, BYTEORDER)
-            byte_string += bytes(value, ENCODING)
+            value_bytes = bytes(value, ENCODING)
+            byte_string += int.to_bytes(len(value_bytes), NUM_INT_BYTES, BYTEORDER)
+            byte_string += value_bytes
         elif val_type is list:
             list_byte_string = _pack(*value)
             byte_string += int.to_bytes(len(list_byte_string), NUM_INT_BYTES, BYTEORDER)
             byte_string += list_byte_string
         elif val_type is dict:
-            byte_string += bytes(str(value), ENCODING)   # TODO: Find more performing and secure option
+            dict_byte_string = json.dumps(value).encode(ENCODING)
+            byte_string += int.to_bytes(len(dict_byte_string), NUM_INT_BYTES, BYTEORDER)
+            byte_string += dict_byte_string
         elif val_type is tuple:
             tuple_byte_string = _pack(*value)
             byte_string += int.to_bytes(len(tuple_byte_string), NUM_INT_BYTES, BYTEORDER)
@@ -83,6 +82,8 @@ def _pack(*args):
             byte_string += value
         elif val_type is bool:
             byte_string += int.to_bytes(1, 1, BYTEORDER, signed=False) if value else int.to_bytes(0, 1, BYTEORDER, signed=False)
+        elif isinstance(val_type(), type(None)):
+            pass
         else:
             raise Exception("Unknown data type: " + str(val_type) + "\t(in Datatypes.Main.pack_values()")
     return byte_string
@@ -123,7 +124,11 @@ def _unpack(byte_string):
             idx_end += len_list_string
             value = list(_unpack(byte_string[idx_start:idx_end]))
         elif val_type is dict:
-            byte_string += bytes(str(value), ENCODING)   # TODO: Find more performing and secure option
+            idx_end += NUM_INT_BYTES
+            len_dict_string = int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER)
+            idx_start = idx_end
+            idx_end += len_dict_string
+            value = json.loads(byte_string[idx_start:idx_end].decode(ENCODING))
         elif val_type is tuple:
             idx_end += NUM_INT_BYTES
             len_tuple_string = int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER)
@@ -140,6 +145,8 @@ def _unpack(byte_string):
             idx_start = idx_end
             idx_end += 1
             value = True if int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER, signed=False) == 1 else False
+        elif isinstance(val_type(), type(None)):
+            value = None
         else:
             raise Exception("Unknown data type: " + str(val_type) + "\t(in " + str(__name__) + ".pack_values()")
 
