@@ -22,9 +22,11 @@ When a communicator is closed call remove_manger(), with the communicator ID
 @internal_use:
 
 """
-from Network.Logging import logger
+from .Logging import logger
 
-from Network.Data import Function_packet, Data_packet, Status_packet
+from .Packets import Function_packet, Data_packet, Status_packet
+
+__all__ = ["IDManager", "remove_manager"]
 
 
 class IDManagers(type):
@@ -32,19 +34,20 @@ class IDManagers(type):
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
-        id = args[0]
-        if id not in cls._instances:
-            cls._instances[id] = super(IDManagers, cls).__call__()
-            logger.debug(cls._instances)
-        return cls._instances[id]
+        id_ = args[0]
+        if id_ not in cls._instances:
+            cls._instances[id_] = super(IDManagers, cls).__call__(id_)
+        return cls._instances[id_]
 
-    def remove(cls, id):
-        cls._instances.pop(id)
+    @classmethod
+    def remove(mcs, id_):
+        mcs._instances.pop(id_)
 
 
 class IDManager(metaclass=IDManagers):
 
-    def __init__(self):
+    def __init__(self, id_):
+        self.id = id_
         self._function_id = 0
         self._inner_id = 0
         self._outer_id = 0
@@ -61,6 +64,7 @@ class IDManager(metaclass=IDManagers):
             func_id, inner_id = self._is_status_packet(packet)
         else:
             logger.error("Unknown packet_class (%s)", type(packet).__name__)
+            return
 
         packet.set_ids(func_id, inner_id, outer_id)
         return packet
@@ -102,13 +106,9 @@ class IDManager(metaclass=IDManagers):
         return function_id, inner_id
 
 
-def remove_manager(id):
+def remove_manager(id_):
     """Called when a communicator is stopped. So its ID Manager isn´t needed anymore"""
     try:
-        IDManagers._instances.pop(id)
+        IDManagers.remove(id_)
     except KeyError:
         pass
-
-
-
-
