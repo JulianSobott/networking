@@ -1,0 +1,6 @@
+__pycache__/
+website/
+*.pyc
+TEMP_FILES/
+.idea/
+*.pyc
