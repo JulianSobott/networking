@@ -3,32 +3,103 @@
 @brief:
 @description:
 
+all available packets:
+-Function_packet:
+-Status_packet:
+-Data_packet:
+-File_meta_packet:
+
+general packet byte string:
+<packet_byte_string_len><function_id><inner_id><outer_id><packet_cls_id><specific_packet_data>
+
+
+GeneralPacket:
+    Header:
+        - PacketType (Function, Data, Status, File)
+        - ID's
+        - specific data size
+    Specific Data:
+
 @external_use:
+packet = <cls>_packet(args)
+byte_string = packet.pack()
+same_packet = Packet.unpack(byte_string)
+
 
 @internal_use:
+New <cls>_packet:
+    extend from packet
+    implement: pack, unpack, __eq__, __str__
+    add to packets
 """
 from enum import Enum
 import os
 
 from .utils import Ddict
 from .Logging import logger
-from .Data import IDContainer, pack_int_type, unpack_int_type, NUM_INT_BYTES, BYTEORDER, NUM_TYPE_BYTES, _unpack, _pack
+from .Data import IDContainer, pack_int_type, unpack_int_type, NUM_INT_BYTES, BYTEORDER, NUM_TYPE_BYTES, _unpack, _pack, \
+    ByteStream, pack_int
+
+
+class Header:
+
+    def __init__(self, id_container, packet_type, specific_data_size):
+        self.id_container = id_container
+        self.packet_type = packet_type
+        self.specific_data_size = specific_data_size
+
+    @classmethod
+    def from_packet(cls, packet):
+        packet_type = packets[packet.__class__]
+        id_container = IDContainer.default_init()
+        specific_data_size = 0
+        return cls.__call__(id_container, packet_type, specific_data_size)
+
+    @classmethod
+    def from_bytes(cls, byte_stream):
+        id_container = IDContainer.from_bytes(byte_stream)
+        packet_type = unpack_int_type(byte_stream.next_bytes(NUM_TYPE_BYTES))
+        specific_data_size = byte_stream.next_int()
+        return cls.__call__(id_container, packet_type, specific_data_size)
+
+    def pack(self, len_packet_data):
+        """id's + packet_type + len_packet_data"""
+        self.specific_data_size = len_packet_data
+        byte_string = b""
+        byte_string += self.id_container.pack()
+        byte_string += pack_int_type(self.packet_type)
+        byte_string += pack_int(len_packet_data)
+        return byte_string
+
+    def __eq__(self, other):
+        if not isinstance(other, Header):
+            return False
+        return (self.id_container == other.id_container and
+                self.packet_type == other.packet_type and
+                self.specific_data_size == other.specific_data_size)
 
 
 class Packet:
 
     def __init__(self, packet):
-        self.packet_ID = packets[packet.__class__]
-        self.id_container = IDContainer(-1, -1, -1)
+        self.header = Header.from_packet(packet)
+        self.specific_byte_data = b""
 
     def pack(self):
+        pass
+
+    def _pack_all(self, specific_data_bytes):
         byte_string = b""
-        byte_string += self.id_container.pack()
-        byte_string += pack_int_type(self.packet_ID)
+        data_length = len(specific_data_bytes)
+        byte_string += self.header.pack(data_length)
+        byte_string += self.specific_byte_data
         return byte_string
 
     @staticmethod
     def unpack(byte_string):
+        byte_stream = ByteStream(byte_string)
+        header = Header.from_bytes(byte_stream)
+
         len_packet_string = int.from_bytes(byte_string[:NUM_INT_BYTES], BYTEORDER, signed=False)
         byte_string = byte_string[NUM_INT_BYTES: NUM_INT_BYTES + len_packet_string]
         extra_bytes = byte_string[NUM_INT_BYTES + len_packet_string:]
@@ -165,13 +236,9 @@ class Data_packet(Packet):
         return packet
 
     def pack(self):
-        byte_string = b""
-        byte_string += super().pack()
-
-        byte_string += _pack(self.name, self.data)
-        len_string = len(byte_string)
-        b_len_string = int.to_bytes(len_string, NUM_INT_BYTES, BYTEORDER, signed=False)
-        return b_len_string + byte_string
+        specific_byte_string = b""
+        specific_byte_string += _pack(self.name, self.data)
+        return super()._pack_all(specific_byte_string)
 
     @staticmethod
     def get_empty_size(data_name):

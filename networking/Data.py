@@ -145,7 +145,9 @@ class IDContainer:
         return cls.__call__(-1, -1, -1)
 
     def pack(self):
-        byte_string = _pack(self.function_id, self.inner_id, self.outer_id)
+        byte_string = pack_int(self.function_id)
+        byte_string += pack_int(self.inner_id)
+        byte_string += pack_int(self.outer_id)
         return byte_string
 
     @classmethod
@@ -210,6 +212,10 @@ def pack_int_type(int_type):
 
 def unpack_int_type(full_byte_string):
     return int.from_bytes(full_byte_string[:NUM_TYPE_BYTES], BYTEORDER)
+
+
+def pack_int(num):
+    return int.to_bytes(num, NUM_INT_BYTES, BYTEORDER, signed=True)
 
 
 def example(name, second_name="Miller", tup=()):

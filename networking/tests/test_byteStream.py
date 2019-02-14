@@ -9,11 +9,7 @@
 """
 from unittest import TestCase
 
-from networking.Data import NUM_INT_BYTES, ByteStream, BYTEORDER, _pack, _unpack
-
-
-def pack_int(num):
-    return int.to_bytes(num, NUM_INT_BYTES, BYTEORDER, signed=True)
+from networking.Data import ByteStream, pack_int
 
 
 class TestByteStream(TestCase):

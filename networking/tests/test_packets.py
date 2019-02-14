@@ -10,7 +10,8 @@
 """
 import unittest
 
-import networking.Data as Data
+from networking.Packets import Header, Data_packet
+from networking.Data import ByteStream
 
 
 class TestPackets(unittest.TestCase):
@@ -38,3 +39,14 @@ class TestPackets(unittest.TestCase):
         b = fp_first.pack()
         fp_second, _ = Data.Packet.unpack(b)
         self.assertEqual(fp_first, fp_second)
+
+
+class TestHeader(unittest.TestCase):
+
+    def test_packing(self):
+        packet = Data_packet("Test", 10)
+        header1_0 = packet.header
+        byte_string = packet.pack()
+        byte_stream = ByteStream(byte_string)
+        header1_1 = Header.from_bytes(byte_stream)
+        self.assertEqual(header1_0, header1_1)
