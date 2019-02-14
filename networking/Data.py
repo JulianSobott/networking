@@ -70,7 +70,11 @@ def _pack(*args):
             byte_string += int.to_bytes(len(list_byte_string), NUM_INT_BYTES, BYTEORDER)
             byte_string += list_byte_string
         elif val_type is dict:
-            dict_byte_string = json.dumps(value).encode(ENCODING)
+            try:
+                dict_byte_string = json.dumps(value).encode(ENCODING)
+            except TypeError as e:
+                e.args = (f"Only objects of the following types are packable: ({types.keys()}", )
+                raise
             byte_string += int.to_bytes(len(dict_byte_string), NUM_INT_BYTES, BYTEORDER)
             byte_string += dict_byte_string
         elif val_type is tuple:
@@ -165,8 +169,8 @@ class IDContainer:
     def get_ids(self):
         return self.function_id, self.inner_id, self.outer_id
 
-    def __str__(self):
-        return str(self.function_id) + " - " + str(self.inner_id) + " - " + str(self.outer_id)
+    def __repr__(self):
+        return f"IDContainer({str(self.function_id)}, {str(self.inner_id)}, {str(self.outer_id)})"
 
     def __eq__(self, other):
         if not isinstance(other, IDContainer):
@@ -217,6 +221,3 @@ def unpack_int_type(full_byte_string):
 def pack_int(num):
     return int.to_bytes(num, NUM_INT_BYTES, BYTEORDER, signed=True)
 
-
-def example(name, second_name="Miller", tup=()):
-    print("Hello: " + str(name) + " " + str(second_name) + " --> " + str(tup))

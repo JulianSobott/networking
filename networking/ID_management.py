@@ -24,7 +24,7 @@ When a communicator is closed call remove_manger(), with the communicator ID
 """
 from .Logging import logger
 
-from .Packets import Function_packet, DataPacket, Status_packet
+from .Packets import FunctionPacket, DataPacket, Status_packet
 
 __all__ = ["IDManager", "remove_manager"]
 
@@ -56,7 +56,7 @@ class IDManager(metaclass=IDManagers):
     def set_ids_of_packet(self, packet):
         self._outer_id += 1
         outer_id = self._outer_id
-        if isinstance(packet, Function_packet):
+        if isinstance(packet, FunctionPacket):
             func_id, inner_id = self._is_function_packet()
         elif isinstance(packet, DataPacket):
             func_id, inner_id = self._is_data_packet()
@@ -71,7 +71,7 @@ class IDManager(metaclass=IDManagers):
 
     def update_ids_by_packet(self, packet):
         self._outer_id = packet.id_container.outer_id
-        if isinstance(packet, Function_packet):
+        if isinstance(packet, FunctionPacket):
             self._is_function_packet()
         elif isinstance(packet, DataPacket):
             self._is_data_packet()

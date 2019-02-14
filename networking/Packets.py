@@ -4,7 +4,7 @@
 @description:
 
 all available packets:
--Function_packet:
+-FunctionPacket:
 -Status_packet:
 -DataPacket:
 -File_meta_packet:
@@ -84,7 +84,7 @@ class Header:
                 self.specific_data_size == other.specific_data_size)
 
     def __repr__(self):
-        return packets[self.packet_type].__name__ + ": " + str(self.id_container) + "\n\t"
+        return f"Header({self.id_container.__repr__()}, {packets[self.packet_type].__name__}, {self.specific_data_size})\n\t"
 
 
 class Packet:
@@ -107,6 +107,7 @@ class Packet:
         if header.packet_type not in packets.values():
             raise ValueError("Unknown packet ID: (" + str(header.packet_type) + ")")
         packet = packets[header.packet_type].from_bytes(header, byte_stream)
+        packet.header = header
         return packet
 
     def __eq__(self, other):
@@ -144,9 +145,7 @@ class DataPacket(Packet):
         else:
             all_data = _unpack(byte_stream)
             data = all_data[0]
-        packet = DataPacket(**data)
-        packet.header = header
-        return packet
+        return cls.__call__(**data)
 
     def pack(self):
         if self.uses_pickle:
@@ -156,15 +155,6 @@ class DataPacket(Packet):
             specific_byte_string = b"0"
             specific_byte_string += _pack(self.data)
         return super()._pack_all(specific_byte_string)
-
-    @staticmethod
-    def get_empty_size(data_name):
-        length = IDContainer.TOTAL_BYTE_LENGTH
-        length += NUM_TYPE_BYTES
-        length += len(_pack(data_name))
-        length += NUM_INT_BYTES
-        length += 14    # Length of tuple
-        return length
 
     def __eq__(self, other):
         if super().__eq__(other) and isinstance(other, DataPacket):
@@ -178,7 +168,7 @@ class DataPacket(Packet):
         return string
 
 
-class Function_packet(Packet):
+class FunctionPacket(Packet):
 
     def __init__(self, func, *args):
         super().__init__(self)
@@ -192,35 +182,26 @@ class Function_packet(Packet):
         func = functions.get_function(self.function_name)
         func(connection, *self.data)
 
-    @staticmethod
-    def unpack(byte_string):
-        all_data = _unpack(byte_string)
+    @classmethod
+    def from_bytes(cls, header, byte_stream):
+        all_data = _unpack(byte_stream)
         function_name = all_data[0]
         args = all_data[1]
-        packet = Function_packet(function_name, *args)
-        return packet
+        return cls.__call__(function_name, *args)
 
     def pack(self):
-        byte_string = b""
-        byte_string += super().pack()
-        byte_string += _pack(self.function_name, self.data)
-
-        len_string = len(byte_string)
-        b_len_string = int.to_bytes(len_string, NUM_INT_BYTES, BYTEORDER, signed=False)
-
-        return b_len_string + byte_string
+        specific_byte_string = b""
+        specific_byte_string += _pack(self.function_name, self.data)
+        return super()._pack_all(specific_byte_string)
 
     def __eq__(self, other):
-        if super().__eq__(other) and isinstance(other, Function_packet):
+        if super().__eq__(other) and isinstance(other, FunctionPacket):
             return self.function_name == other.function_name and self.data == other.data
         else:
             return False
 
-    def __str__(self):
-        string = super().__str__()
-        string += str(self.function_name)
-        string += str(self.data)
-        return string
+    def __repr__(self):
+        return f"{super().__repr__()} => FunctionPacket({str(self.function_name)}, {str(self.data)})"
 
 
 class Status_packet(Packet):
@@ -320,7 +301,7 @@ class File_meta_packet(DataPacket):
 
 
 packets = Ddict({
-    Function_packet:    0x101,
+    FunctionPacket:    0x101,
     Status_packet:      0x102,
     DataPacket:        0x103,
     File_meta_packet:   0x104

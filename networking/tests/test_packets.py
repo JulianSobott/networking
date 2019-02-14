@@ -10,7 +10,7 @@
 """
 import unittest
 
-from networking.Packets import Header, Packet, DataPacket
+from networking.Packets import Header, Packet, DataPacket, FunctionPacket
 from networking.Data import ByteStream
 from networking.Logging import logger
 
@@ -26,10 +26,8 @@ class TestPackets(unittest.TestCase):
         self.assertEqual(packet_one, packet_two)
 
     def test_function_packet(self):
-        fp_first = Data.Function_packet(Data.example, "John", "Miller", (12, 13))
-        b = fp_first.pack()
-        fp_second, _ = Data.Packet.unpack(b)
-        self.assertEqual(fp_first, fp_second)
+        packet = FunctionPacket(example_function, "John", "Miller", (12, 13))
+        self.helper_packet_tests(packet)
 
     def test_status_packet(self):
         fp_first = Data.Status_packet(Data.Status_packet.Status_code.successful, "WRONG_AUTHENTICATION_DATA", False)
@@ -63,3 +61,7 @@ class TestHeader(unittest.TestCase):
         byte_stream = ByteStream(byte_string)
         header1_1 = Header.from_bytes(byte_stream)
         self.assertEqual(header1_0, header1_1)
+
+
+def example_function(name, second_name="Miller", tup=()):
+    print("Hello: " + str(name) + " " + str(second_name) + " --> " + str(tup))
