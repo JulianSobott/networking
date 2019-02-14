@@ -89,68 +89,44 @@ def _pack(*args):
     return byte_string
 
 
-def _unpack(byte_string):
+def _unpack(bytes_):
+    if isinstance(bytes_, bytes):
+        byte_stream = ByteStream(bytes_)
+    else:
+        byte_stream = bytes_
     values = []
-    idx_start = 0
-    idx_end = 0
-    while len(byte_string[idx_start:]) > 0:
-        idx_end += NUM_TYPE_BYTES
-        b_type = byte_string[idx_start:idx_end]
-        type_num = int.from_bytes(b_type, BYTEORDER)
+    while not byte_stream.reached_end:
+        type_num = int.from_bytes(byte_stream.next_bytes(NUM_TYPE_BYTES), BYTEORDER)
         try:
             val_type = types[type_num]
         except KeyError:
             raise KeyError()
-        idx_start = idx_end
         if val_type is int:
-            idx_end += NUM_INT_BYTES
-            value = int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER, signed=True)
+            value = byte_stream.next_int()
         elif val_type is float:
-            idx_end += NUM_INT_BYTES
-            val_len = int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER)
-            idx_start = idx_end
-            idx_end += val_len
-            value = float.fromhex(str(byte_string[idx_start:idx_end], ENCODING))
+            val_len = byte_stream.next_int()
+            value = float.fromhex(str(byte_stream.next_bytes(val_len), ENCODING))
         elif val_type is str:
-            idx_end += NUM_INT_BYTES
-            val_len = int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER)
-            idx_start = idx_end
-            idx_end += val_len
-            value = str(byte_string[idx_start:idx_end], ENCODING)
+            val_len = byte_stream.next_int()
+            value = str(byte_stream.next_bytes(val_len), ENCODING)
         elif val_type is list:
-            idx_end += NUM_INT_BYTES
-            len_list_string = int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER)
-            idx_start = idx_end
-            idx_end += len_list_string
-            value = list(_unpack(byte_string[idx_start:idx_end]))
+            len_list_string = byte_stream.next_int()
+            value = list(_unpack(byte_stream.next_bytes(len_list_string)))
         elif val_type is dict:
-            idx_end += NUM_INT_BYTES
-            len_dict_string = int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER)
-            idx_start = idx_end
-            idx_end += len_dict_string
-            value = json.loads(byte_string[idx_start:idx_end].decode(ENCODING))
+            len_dict_string = byte_stream.next_int()
+            value = json.loads(byte_stream.next_bytes(len_dict_string).decode(ENCODING))
         elif val_type is tuple:
-            idx_end += NUM_INT_BYTES
-            len_tuple_string = int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER)
-            idx_start = idx_end
-            idx_end += len_tuple_string
-            value = tuple(_unpack(byte_string[idx_start:idx_end]))
+            len_tuple_string = byte_stream.next_int()
+            value = tuple(_unpack(byte_stream.next_bytes(len_tuple_string)))
         elif val_type is bytes:
-            idx_end += NUM_INT_BYTES
-            val_len = int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER)
-            idx_start = idx_end
-            idx_end += val_len
-            value = byte_string[idx_start:idx_end]
+            val_len = byte_stream.next_int()
+            value = byte_stream.next_bytes(val_len)
         elif val_type is bool:
-            idx_start = idx_end
-            idx_end += 1
-            value = True if int.from_bytes(byte_string[idx_start:idx_end], BYTEORDER, signed=False) == 1 else False
+            value = True if int.from_bytes(byte_stream.next_bytes(1), BYTEORDER, signed=False) == 1 else False
         elif isinstance(val_type(), type(None)):
             value = None
         else:
             raise Exception("Unknown data type: " + str(val_type) + "\t(in " + str(__name__) + ".pack_values()")
-
-        idx_start = idx_end
         values.append(value)
     return tuple(values)
 
@@ -164,14 +140,20 @@ class IDContainer:
         self.inner_id = inner_id
         self.outer_id = outer_id
 
+    @classmethod
+    def default_init(cls):
+        return cls.__call__(-1, -1, -1)
+
     def pack(self):
         byte_string = _pack(self.function_id, self.inner_id, self.outer_id)
         return byte_string
 
-    @staticmethod
-    def unpack(byte_string):
-        function_id, inner_id, outer_id = _unpack(byte_string[:IDContainer.TOTAL_BYTE_LENGTH])
-        return IDContainer(function_id, inner_id, outer_id)
+    @classmethod
+    def from_bytes(cls, byte_stream):
+        function_id = byte_stream.next_int()
+        inner_id = byte_stream.next_int()
+        outer_id = byte_stream.next_int()
+        return cls.__call__(function_id, inner_id, outer_id)
 
     def set_ids(self, function_id, inner_id, outer_id):
         self.function_id = function_id
@@ -190,6 +172,36 @@ class IDContainer:
         return (self.function_id == other.function_id and
                 self.inner_id == other.inner_id and
                 self.outer_id == other.outer_id)
+
+
+class ByteStream:
+
+    def __init__(self, byte_string: bytes):
+        self.byte_string = byte_string
+        self.idx = 0
+        self.length = len(byte_string)
+        self.reached_end = False
+
+    def next_int(self):
+        byte_string = self.next_bytes(NUM_INT_BYTES)
+        return int.from_bytes(byte_string, BYTEORDER, signed=True)
+
+    def next_bytes(self, num_bytes):
+        assert num_bytes > 0, "This function is not meant to be called with negative values"
+        try:
+            return self.byte_string[self.idx: self.idx + num_bytes]
+        finally:
+            self._inc_idx(num_bytes)
+            if self.reached_end and self.idx > self.length:
+                raise IndexError("Byte string ran out of scope")
+
+    def _inc_idx(self, amount):
+        self.idx += amount
+        if self.idx >= len(self.byte_string):
+            self.reached_end = True
+
+    def __repr__(self):
+        return str(self.byte_string)
 
 
 def pack_int_type(int_type):
