@@ -6,7 +6,7 @@
 all available packets:
 -Function_packet:
 -Status_packet:
--Data_packet:
+-DataPacket:
 -File_meta_packet:
 
 general packet byte string:
@@ -31,6 +31,10 @@ New <cls>_packet:
     extend from packet
     implement: pack, unpack, __eq__, __str__
     add to packets
+
+@TODO:
+- create concept of Byte stream and extract packets (maybe in other file)
+- save delete unpack function in Packet
 """
 from enum import Enum
 import os
@@ -78,12 +82,14 @@ class Header:
                 self.packet_type == other.packet_type and
                 self.specific_data_size == other.specific_data_size)
 
+    def __repr__(self):
+        return packets[self.packet_type].__name__ + ": " + str(self.id_container) + "\n\t"
+
 
 class Packet:
 
     def __init__(self, packet):
         self.header = Header.from_packet(packet)
-        self.specific_byte_data = b""
 
     def pack(self):
         pass
@@ -92,39 +98,64 @@ class Packet:
         byte_string = b""
         data_length = len(specific_data_bytes)
         byte_string += self.header.pack(data_length)
-        byte_string += self.specific_byte_data
+        byte_string += specific_data_bytes
         return byte_string
 
-    @staticmethod
-    def unpack(byte_string):
-        byte_stream = ByteStream(byte_string)
-        header = Header.from_bytes(byte_stream)
-
-        len_packet_string = int.from_bytes(byte_string[:NUM_INT_BYTES], BYTEORDER, signed=False)
-        byte_string = byte_string[NUM_INT_BYTES: NUM_INT_BYTES + len_packet_string]
-        extra_bytes = byte_string[NUM_INT_BYTES + len_packet_string:]
-
-        id_container = IDContainer.unpack(byte_string)
-
-        packet_id = unpack_int_type(byte_string[IDContainer.TOTAL_BYTE_LENGTH:])
-        all_data = byte_string[IDContainer.TOTAL_BYTE_LENGTH + NUM_TYPE_BYTES:]
-        if packet_id not in packets.values():
-            raise ValueError("Error: Unknown packet ID: (" + str(packet_id) + ")")
-        packet = packets[packet_id].unpack(all_data)
-        packet.set_ids(*id_container.get_ids())
-        return packet, extra_bytes
-
-    def set_ids(self, function_id, inner_id, outer_id):
-        self.id_container.set_ids(function_id, inner_id, outer_id)
+    @classmethod
+    def from_bytes(cls, header, byte_stream):
+        if header.packet_type not in packets.values():
+            raise ValueError("Unknown packet ID: (" + str(header.packet_type) + ")")
+        packet = packets[header.packet_type].from_bytes(header, byte_stream)
+        return packet
 
     def __eq__(self, other):
         if isinstance(other, Packet):
-            return self.id_container == other.id_container and self.packet_ID == other.packet_ID
+            return self.header == other.header
         else:
             return False
 
-    def __str__(self):
-        return packets[self.packet_ID].__name__ + ": " + str(self.id_container) + "\n\t"
+    def __repr__(self):
+        return str(self.header)
+
+
+class DataPacket(Packet):
+    """Packet to send named data
+    Available data types are all defined in :py:const:`~networking.Data.type`"""
+    def __init__(self, **kwargs):
+        super().__init__(self)
+        self.data = kwargs
+
+    @classmethod
+    def from_bytes(cls, header, byte_stream):
+        all_data = _unpack(byte_stream)
+        packet = DataPacket(**all_data[0])
+        packet.header = header
+        return packet
+
+    def pack(self):
+        specific_byte_string = b""
+        specific_byte_string += _pack(self.data)
+        return super()._pack_all(specific_byte_string)
+
+    @staticmethod
+    def get_empty_size(data_name):
+        length = IDContainer.TOTAL_BYTE_LENGTH
+        length += NUM_TYPE_BYTES
+        length += len(_pack(data_name))
+        length += NUM_INT_BYTES
+        length += 14    # Length of tuple
+        return length
+
+    def __eq__(self, other):
+        if super().__eq__(other) and isinstance(other, DataPacket):
+            return self.data == other.data
+        else:
+            return False
+
+    def __repr__(self):
+        string = super().__repr__()
+        string += str(self.data)
+        return string
 
 
 class Function_packet(Packet):
@@ -220,49 +251,8 @@ class Status_packet(Packet):
         return string
 
 
-class Data_packet(Packet):
 
-    def __init__(self, data_name, *args):
-        super().__init__(self)
-        self.name = data_name
-        self.data = args
-
-    @staticmethod
-    def unpack(byte_string):
-        all_data = _unpack(byte_string)
-        data_name = all_data[0]
-        args = all_data[1]
-        packet = Data_packet(data_name, *args)
-        return packet
-
-    def pack(self):
-        specific_byte_string = b""
-        specific_byte_string += _pack(self.name, self.data)
-        return super()._pack_all(specific_byte_string)
-
-    @staticmethod
-    def get_empty_size(data_name):
-        length = IDContainer.TOTAL_BYTE_LENGTH
-        length += NUM_TYPE_BYTES
-        length += len(_pack(data_name))
-        length += NUM_INT_BYTES
-        length += 14    # Length of tuple
-        return length
-
-    def __eq__(self, other):
-        if super().__eq__(other) and isinstance(other, Data_packet):
-            return self.name == other.name and self.data == other.data
-        else:
-            return False
-
-    def __str__(self):
-        string = super().__str__()
-        string += str(self.name)
-        string += str(self.data)
-        return string
-
-
-class File_meta_packet(Data_packet):
+class File_meta_packet(DataPacket):
 
     def __init__(self, abs_path):
         if os.path.exists(abs_path):
@@ -312,6 +302,6 @@ class File_meta_packet(Data_packet):
 packets = Ddict({
     Function_packet:    0x101,
     Status_packet:      0x102,
-    Data_packet:        0x103,
+    DataPacket:        0x103,
     File_meta_packet:   0x104
 })

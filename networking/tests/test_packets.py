@@ -10,11 +10,20 @@
 """
 import unittest
 
-from networking.Packets import Header, Data_packet
+from networking.Packets import Header, Packet, DataPacket
 from networking.Data import ByteStream
+from networking.Logging import logger
 
 
 class TestPackets(unittest.TestCase):
+
+    def helper_packet_tests(self, packet):
+        packet_one = packet
+        byte_string = packet_one.pack()
+        byte_stream = ByteStream(byte_string)
+        header = Header.from_bytes(byte_stream)
+        packet_two = Packet.from_bytes(header, byte_stream)
+        self.assertEqual(packet_one, packet_two)
 
     def test_function_packet(self):
         fp_first = Data.Function_packet(Data.example, "John", "Miller", (12, 13))
@@ -29,10 +38,14 @@ class TestPackets(unittest.TestCase):
         self.assertEqual(fp_first, fp_second)
 
     def test_data_packet(self):
-        fp_first = Data.Data_packet("Name", "John Miller")
-        b = fp_first.pack()
-        fp_second, _ = Data.Packet.unpack(b)
-        self.assertEqual(fp_first, fp_second)
+        packet = DataPacket(Name="John Miller")
+        self.helper_packet_tests(packet)
+
+        packet = DataPacket(username="John", age="28", password=["he", "he"])
+        self.helper_packet_tests(packet)
+
+        packet = DataPacket()
+        self.helper_packet_tests(packet)
 
     def test_file_meta_packet(self):
         fp_first = Data.File_meta_packet("Testing_Data.py")
@@ -44,7 +57,7 @@ class TestPackets(unittest.TestCase):
 class TestHeader(unittest.TestCase):
 
     def test_packing(self):
-        packet = Data_packet("Test", 10)
+        packet = DataPacket(Test=10)
         header1_0 = packet.header
         byte_string = packet.pack()
         byte_stream = ByteStream(byte_string)
