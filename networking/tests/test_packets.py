@@ -44,7 +44,7 @@ class TestPackets(unittest.TestCase):
         packet = DataPacket(username="John", age="28", password=["he", "he"])
         self.helper_packet_tests(packet)
 
-        packet = DataPacket()
+        packet = DataPacket.from_complex(classObj=TestHeader())
         self.helper_packet_tests(packet)
 
     def test_file_meta_packet(self):
