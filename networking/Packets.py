@@ -121,20 +121,11 @@ class Packet:
 
 
 class DataPacket(Packet):
-    """Packet to send named data
-    Available data types are all defined in :py:const:`~networking.Data.type`"""
+    """Packet to send named data"""
+
     def __init__(self, **kwargs):
         super().__init__(self)
         self.data = kwargs
-        self.uses_pickle = False
-
-    @classmethod
-    def from_complex(cls, **kwargs):
-        """Allows to send complex data structures. Uses the 'pickle' module
-        A packet with this method is with standard data types a bit larger"""
-        packet = DataPacket(**kwargs)
-        packet.uses_pickle = True
-        return packet
 
     @classmethod
     def from_bytes(cls, header, byte_stream):
@@ -148,12 +139,12 @@ class DataPacket(Packet):
         return cls.__call__(**data)
 
     def pack(self):
-        if self.uses_pickle:
-            specific_byte_string = b"1"
-            specific_byte_string += pickle.dumps(self.data)
-        else:
+        try:
             specific_byte_string = b"0"
             specific_byte_string += _pack(self.data)
+        except Exception:
+            specific_byte_string = b"1"
+            specific_byte_string += pickle.dumps(self.data)
         return super()._pack_all(specific_byte_string)
 
     def __eq__(self, other):
