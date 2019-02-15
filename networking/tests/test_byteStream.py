@@ -38,3 +38,21 @@ class TestByteStream(TestCase):
         self.assertRaises(IndexError, byte_stream.next_bytes, 5)
         self.assertRaises(AssertionError, byte_stream.next_bytes, -2)
 
+    def test_iadd(self):
+        byte_stream = ByteStream(b"Hello")
+        add = b"Hello"
+        byte_stream += add
+        expected = b"HelloHello"
+        self.assertEqual(byte_stream.byte_string, expected)
+
+    def test_remove_consumed_bytes(self):
+        byte_stream = ByteStream(b"Hello World")
+        byte_stream.next_bytes(len(b"Hello "))
+        byte_stream.remove_consumed_bytes()
+        expected = b"World"
+        self.assertEqual(byte_stream.byte_string, expected)
+
+        byte_stream = ByteStream(b"Hello World")
+        byte_stream.next_bytes(len(b"Hello World"))
+        byte_stream.remove_consumed_bytes()
+        self.assertEqual(byte_stream.reached_end, True)

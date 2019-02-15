@@ -48,6 +48,8 @@ from .Data import IDContainer, pack_int_type, unpack_int_type, NUM_INT_BYTES, BY
 
 class Header:
 
+    LENGTH_BYTES = 19
+
     def __init__(self, id_container, packet_type, specific_data_size):
         self.id_container = id_container
         self.packet_type = packet_type

@@ -186,6 +186,7 @@ class ByteStream:
         self.byte_string = byte_string
         self.idx = 0
         self.length = len(byte_string)
+        self.remaining_length = self.length
         self.reached_end = False
 
     def next_int(self):
@@ -203,8 +204,26 @@ class ByteStream:
 
     def _inc_idx(self, amount):
         self.idx += amount
-        if self.idx >= len(self.byte_string):
+        self.remaining_length -= amount
+        if self.remaining_length <= 0:
             self.reached_end = True
+
+    def remove_consumed_bytes(self):
+        self.byte_string = self.byte_string[self.idx:]
+        self.length = len(self.byte_string)
+        self.remaining_length = self.length
+        self.reached_end = self.length == 0
+        self.idx = 0
+
+    def __iadd__(self, other):
+        if not isinstance(other, bytes):
+            raise TypeError
+        self.byte_string += other
+        added_length = len(other)
+        self.length += added_length
+        self.remaining_length += added_length
+        self.reached_end = added_length > 0
+        return self
 
     def __repr__(self):
         return str(self.byte_string)
