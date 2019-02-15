@@ -13,5 +13,3 @@ from Server import dummy_func
 
 class ServerCommunicator(net.ServerCommunicator):
     from Server import dummy_func
-
-

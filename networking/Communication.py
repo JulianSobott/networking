@@ -20,9 +20,9 @@ class Communicator(threading.Thread):
 
     CHUNK_SIZE = 1048
 
-    def __init__(self, tcp_connection, address, ID, public_functions, is_connected=False):
-        super().__init__(name="Communicator_thread_" + str(ID))
-        self.ID = ID
+    def __init__(self, tcp_connection, address, id_, public_functions, is_connected=False):
+        super().__init__(name="Communicator_thread_" + str(id_))
+        self.ID = id_
         self.address = address
         self.tcp_connection = tcp_connection
         self.packet_list = []
