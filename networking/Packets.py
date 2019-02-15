@@ -170,38 +170,41 @@ class DataPacket(Packet):
 
 class FunctionPacket(Packet):
 
-    def __init__(self, func, *args):
+    def __init__(self, func, *args, **kwargs):
         super().__init__(self)
         if type(func) is str:
             self.function_name = func
         else:
             self.function_name = func.__name__
-        self.data = args
+        self.args = args
+        self.kwargs = kwargs
 
     def execute(self, connection, functions):
         func = functions.get_function(self.function_name)
-        func(connection, *self.data)
+        func(connection, *self.args, **self.kwargs)
 
     @classmethod
     def from_bytes(cls, header, byte_stream):
         all_data = _unpack(byte_stream)
         function_name = all_data[0]
         args = all_data[1]
-        return cls.__call__(function_name, *args)
+        kwargs = all_data[2]
+        return cls.__call__(function_name, *args, **kwargs)
 
     def pack(self):
         specific_byte_string = b""
-        specific_byte_string += _pack(self.function_name, self.data)
+        specific_byte_string += _pack(self.function_name, self.args, self.kwargs)
         return super()._pack_all(specific_byte_string)
 
     def __eq__(self, other):
         if super().__eq__(other) and isinstance(other, FunctionPacket):
-            return self.function_name == other.function_name and self.data == other.data
+            return self.function_name == other.function_name and self.args == other.args and self.kwargs == other.kwargs
         else:
             return False
 
     def __repr__(self):
-        return f"{super().__repr__()} => FunctionPacket({str(self.function_name)}, {str(self.data)})"
+        return f"{super().__repr__()} => FunctionPacket({str(self.function_name)}, " \
+            f"{str(self.args)}, {str(self.kwargs)})"
 
 
 class Status_packet(Packet):

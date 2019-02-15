@@ -18,11 +18,11 @@ Data Types that can be packed (and their limitations):
 
 @internal_use:
 
-"""
-import json
-import types as builtinTypes
+@TODO_:
 
-from .utils import Ddict
+"""
+
+from .utils import Ddict, load_dict_from_json, dump_dict_to_json
 from .Logging import logger
 
 NUM_TYPE_BYTES = 3
@@ -71,7 +71,7 @@ def _pack(*args):
             byte_string += list_byte_string
         elif val_type is dict:
             try:
-                dict_byte_string = json.dumps(value).encode(ENCODING)
+                dict_byte_string = dump_dict_to_json(value).encode(ENCODING)
             except TypeError as e:
                 e.args = (f"Only objects of the following types are packable: ({types.keys()}", )
                 raise
@@ -118,7 +118,7 @@ def _unpack(bytes_):
             value = list(_unpack(byte_stream.next_bytes(len_list_string)))
         elif val_type is dict:
             len_dict_string = byte_stream.next_int()
-            value = json.loads(byte_stream.next_bytes(len_dict_string).decode(ENCODING))
+            value = load_dict_from_json(byte_stream.next_bytes(len_dict_string).decode(ENCODING))
         elif val_type is tuple:
             len_tuple_string = byte_stream.next_int()
             value = tuple(_unpack(byte_stream.next_bytes(len_tuple_string)))

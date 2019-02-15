@@ -29,6 +29,9 @@ class TestPackets(unittest.TestCase):
         packet = FunctionPacket(example_function, "John", "Miller", (12, 13))
         self.helper_packet_tests(packet)
 
+        packet = FunctionPacket(example_function, "John", tup=("HE",))
+        self.helper_packet_tests(packet)
+
     def test_status_packet(self):
         fp_first = Data.Status_packet(Data.Status_packet.Status_code.successful, "WRONG_AUTHENTICATION_DATA", False)
         b = fp_first.pack()

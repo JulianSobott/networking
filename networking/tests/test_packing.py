@@ -41,7 +41,7 @@ class TestPacking(TestCase):
         single_value(self, value)
 
     def test_dict(self):
-        value = {"val1": 1, "väl2": "Hä llo", "val3": [2, 6]}
+        value = {"val1": 1, "väl2": "Hä llo", "val3": [((2, 6), 1), 7]}
         single_value(self, value)
 
     def test_tuple(self):
