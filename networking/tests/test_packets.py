@@ -32,12 +32,6 @@ class TestPackets(unittest.TestCase):
         packet = FunctionPacket(example_function, "John", tup=("HE",))
         self.helper_packet_tests(packet)
 
-    def test_status_packet(self):
-        fp_first = Data.Status_packet(Data.Status_packet.Status_code.successful, "WRONG_AUTHENTICATION_DATA", False)
-        b = fp_first.pack()
-        fp_second, _ = Data.Packet.unpack(b)
-        self.assertEqual(fp_first, fp_second)
-
     def test_data_packet(self):
         packet = DataPacket(Name="John Miller")
         self.helper_packet_tests(packet)
@@ -47,12 +41,6 @@ class TestPackets(unittest.TestCase):
 
         packet = DataPacket(classObj=TestHeader)
         self.helper_packet_tests(packet)
-
-    def test_file_meta_packet(self):
-        fp_first = Data.File_meta_packet("Testing_Data.py")
-        b = fp_first.pack()
-        fp_second, _ = Data.Packet.unpack(b)
-        self.assertEqual(fp_first, fp_second)
 
 
 class TestHeader(unittest.TestCase):
