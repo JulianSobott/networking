@@ -10,4 +10,4 @@
 
 @TODO:
 """
-from .Communication_new import ServerCommunicator
+from .Communication_Client import ServerCommunicator
