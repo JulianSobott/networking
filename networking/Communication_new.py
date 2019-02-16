@@ -7,7 +7,6 @@
 
 @internal_use:
 """
-import time
 import threading
 import socket
 
@@ -19,32 +18,28 @@ from networking.Data import ByteStream
 
 class MetaFunctionCommunicator(type):
 
-    _initialized = False
-
-    @classmethod
-    def init(mcs, communicator):
-        mcs._communicator = communicator
-        mcs._initialized = True
-
     def __getattribute__(self, item):
-        if not self._initialized:
+
+        if item == "__getattr__":
             return type.__getattribute__(self, item)
 
-        def container(*args):
+        def container(*args, **kwargs):
             function_name = item
-            function_args = args
             # send function packet
+            self._send_function(function_name, *args, **kwargs)
             # recv data packet
+            data_packet = ServerCommunicator.communicator.wait_for_response(self._recv_function)
             # unpack data packet
-            data = None
-            return data
+            return_values = data_packet.data["return"]
+            return return_values
         return container
 
-    def send_function(cls, function_name, args, kwargs):
-        pass
+    @staticmethod
+    def _send_function(function_name, *args, **kwargs):
+        packet = FunctionPacket(function_name, *args, **kwargs)
+        ServerCommunicator.communicator.send_packet(packet)
 
-    def recv_function(cls, function_name, args, kwargs):
-        ret_value = None
+    def _recv_function(cls, function_name, args, kwargs):
         try:
             func = type.__getattribute__(cls, function_name)
             try:
@@ -53,63 +48,64 @@ class MetaFunctionCommunicator(type):
                 ret_value = e
         except AttributeError as e:
             ret_value = e
-        data_packet = DataPacket(ret_value=ret_value)
-        cls._communicator: Communicator
-        cls._communicator.send_packet(data_packet)
+        ret_kwargs = {"return": ret_value}
+        data_packet = DataPacket(**ret_kwargs)
+        ServerCommunicator.communicator: Communicator
+        ServerCommunicator.communicator.send_packet(data_packet)
 
     def __getattr__(self, item):
         func = type.__getattribute__(self, item)
         return func
 
 
-class InternServerCommunicator:
+class ServerCommunicator:
 
-    def __init__(self, addr):
-        self.communicator = Communicator(addr)
-        self.communicator.start()
-
-
-class ServerCommunicator(metaclass=MetaFunctionCommunicator):
+    server_functions = None
+    communicator = None
 
     @classmethod
     def connect(cls, addr):
-        communicator = Communicator(addr)
-        communicator.start()
-        cls.init(communicator)
+        ServerCommunicator.communicator = Communicator(addr)
+        ServerCommunicator.communicator.start()
 
     @staticmethod
     def close_connection():
-        pass
+        ServerCommunicator.communicator.stop()
+
+
+class ServerFunctions(metaclass=MetaFunctionCommunicator):
+    pass
 
 
 class DummyServerCommunicator(ServerCommunicator):
-    from networking.Packets import FunctionPacket
+    class _DummyServerFunctions(ServerFunctions):
+        from networking import Packets
+        pass
 
-class ServerFunctions(metaclass=MetaFunctionCommunicator):
-    from networking.Packets import FunctionPacket
+    server_functions = _DummyServerFunctions
 
-
-#DummyServerCommunicator.FunctionPacket()
 
 class Communicator(threading.Thread):
 
     CHUNK_SIZE = 1024
 
     def __init__(self, address, id_=0, socket_connection=None):
-        super().__init__(name=f"Communicator_thread_{id}")
+        super().__init__(name=f"Communicator_thread_{id_}")
         self._socket_connection = socket_connection
         self._address = address
         self._id = id_
         self._is_on = True
         self._is_connected = socket_connection is not None
         self._packets = []
+        self._exit = threading.Event()
+        self._time_till_next_check = 0.3
 
     def run(self):
         if not self._is_connected:
             self._connect()
         self._wait_for_new_input()
 
-    def _connect(self, seconds_till_next_try=1, timeout=-1):
+    def _connect(self, seconds_till_next_try=10, timeout=-1):
         waited = 0
         while self._is_on and not self._is_connected:
             try:
@@ -123,7 +119,7 @@ class Communicator(threading.Thread):
                 logger.debug(e)
                 self._is_connected = True
 
-            time.sleep(seconds_till_next_try)
+            self._exit.wait(seconds_till_next_try)
             waited += seconds_till_next_try
             if waited > timeout > 0:
                 logger.warning("Connection timeout")
@@ -155,6 +151,7 @@ class Communicator(threading.Thread):
             except OSError:
                 logger.error("TCP connection closed while listening")
                 self._is_connected = False
+            self._exit.wait(self._time_till_next_check)
 
     def send_packet(self, packet):
         try:
@@ -172,10 +169,39 @@ class Communicator(threading.Thread):
         except OSError:
             logger.error("Could not send packet: %s", str(packet))
 
+    def wait_for_response(self, recv_function_function):
+        next_outer_id = IDManager(self._id).get_next_outer_id()
+        while self._is_on:
+            try:
+                next_packet = self._packets.pop(0)
+                actual_outer_id = next_packet.header.id_container.outer_id
+                if actual_outer_id > next_outer_id:
+                    logger.error(f"Packet lost! Expected outer_id: {next_outer_id}. Got instead: {actual_outer_id}")
+                    # TODO: handle
+                elif actual_outer_id < next_outer_id:
+                    logger.error(f"Unhandled Packet! Expected outer_id: {next_outer_id}. Got instead: {actual_outer_id}")
+                    # TODO: handle (if possible)
+                else:
+                    if isinstance(next_packet, FunctionPacket):
+                        recv_function_function(next_packet)
+                        return
+                    elif isinstance(next_packet, DataPacket):
+                        return next_packet
+                    else:
+                        logger.error(f"Received not implemented Packet class: {type(next_packet)}")
+
+            except IndexError:
+                pass    # List is empty -> wait
+            self._exit.wait(self._time_till_next_check)
+
     def stop(self):
         self._is_on = False
+        try:
+            self._socket_connection.close()
+        except AttributeError:
+            pass    # Connection already closed
         self._is_connected = False
-        self._socket_connection.close()
+        self._exit.set()
         self.join()
         remove_manager(self._id)
 
