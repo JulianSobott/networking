@@ -1,13 +1,13 @@
 import unittest
 
-from networking.Communication_new import *
+from networking.Communication_Client import *
 
 
 class TestCommunicator(unittest.TestCase):
     pass
 
 
-class TestServerCommunicator(unittest.TestCase):
+class TestClientCommunicator(unittest.TestCase):
 
     def test_connection(self):
         addr = ("127.0.0.1", 5000)
