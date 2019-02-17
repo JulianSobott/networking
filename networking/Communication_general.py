@@ -20,7 +20,7 @@ class Communicator(threading.Thread):
 
     CHUNK_SIZE = 1024
 
-    def __init__(self, address, id_=0, socket_connection=None, keep_connection=True):
+    def __init__(self, address, id_=0, socket_connection=socket.socket(), keep_connection=True):
         super().__init__(name=f"{'Server' if socket_connection is None else 'Client'}_Communicator_thread_{id_}")
         self._socket_connection = socket_connection
         self._address = address
