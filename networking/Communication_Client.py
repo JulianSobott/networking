@@ -25,11 +25,12 @@ class MultiServerCommunicator(MultiConnector):
     def connect(self, addr):
         if self.communicator is None:
             self.communicator = Communicator(addr, id_=self._id)
+            self.functions.__setattr__(self.functions, "communicator", self.communicator)
             self.communicator.start()
 
 
 class ServerFunctions(metaclass=MetaFunctionCommunicator):
-    pass
+    communicator = None
 
 
 # *******************************************************
@@ -39,7 +40,7 @@ class ServerFunctions(metaclass=MetaFunctionCommunicator):
 
 class DummyServerCommunicator(ServerCommunicator):
     class _DummyServerFunctions(ServerFunctions):
-        from networking import Packets
+        from networking.tests.test_Communication import dummy_function
         pass
 
     functions = _DummyServerFunctions
@@ -47,7 +48,7 @@ class DummyServerCommunicator(ServerCommunicator):
 
 class DummyMultiServerCommunicator(MultiServerCommunicator):
     class _DummyServerFunctions(ServerFunctions):
-        from networking import Packets
+        from networking.tests.test_Communication import dummy_function
         pass
 
     functions = _DummyServerFunctions

@@ -112,6 +112,9 @@ class Packet:
         packet.header = header
         return packet
 
+    def set_ids(self, function_id, inner_id, outer_id):
+        self.header.id_container.set_ids(function_id, inner_id, outer_id)
+
     def __eq__(self, other):
         if isinstance(other, Packet):
             return self.header == other.header

@@ -62,7 +62,7 @@ class Communicator(threading.Thread):
         packet_builder = PacketBuilder()
         with self._socket_connection:
             while self._is_on:
-                logger.debug(f"{self.getName()} : {self._is_on}")
+                # logger.debug(f"{self.getName()} : {self._is_on}")
                 if self._is_on and not self._is_connected:
                     if self._keep_connection:
                         self._connect()
@@ -80,22 +80,24 @@ class Communicator(threading.Thread):
                             self._packets.append(possible_packet)
 
                 except ConnectionResetError:
-                    logger.error("Connection reset, (%s)", str(self._address))
+                    logger.warning("Connection reset, (%s)", str(self._address))
                     self._is_connected = False
 
                 except ConnectionAbortedError:
-                    logger.error("Connection aborted, (%s)", str(self._address))
+                    logger.warning("Connection aborted, (%s)", str(self._address))
                     self._is_connected = False
 
                 except OSError:
-                    logger.error("TCP connection closed while listening")
+                    logger.warning("TCP connection closed while listening")
                     self._is_connected = False
 
                 self._exit.wait(self._time_till_next_check)
 
-            logger.debug(f"finished {self.getName()}")
+            logger.debug(f"finished _wait_for_new_input {self.getName()}")
 
     def send_packet(self, packet):
+        if not self._is_connected:
+            self._connect(timeout=2)
         try:
             IDManager(self._id).set_ids_of_packet(packet)
             send_data = packet.pack()
@@ -150,6 +152,9 @@ class Communicator(threading.Thread):
         self.join()
         remove_manager(self._id)
 
+    def is_connected(self):
+        return self._is_connected
+
 
 class PacketBuilder:
 
@@ -174,23 +179,24 @@ class MetaFunctionCommunicator(type):
 
         if item == "__getattr__":
             return type.__getattribute__(self, item)
+        if item == "__setattr__":
+            return type.__setattr__
 
         def container(*args, **kwargs):
             function_name = item
             # send function packet
-            self._send_function(function_name, *args, **kwargs)
+            self.__getattr__("_send_function")(function_name, *args, **kwargs)
             # recv data packet
-            data_packet = Connector.communicator.wait_for_response(self._recv_function)
+            data_packet = self.__getattr__("communicator").wait_for_response(self._recv_function)
             # unpack data packet
             return_values = data_packet.data["return"]
             return return_values
 
         return container
 
-    @staticmethod
-    def _send_function(function_name, *args, **kwargs):
+    def _send_function(cls, function_name, *args, **kwargs):
         packet = FunctionPacket(function_name, *args, **kwargs)
-        Connector.communicator.send_packet(packet)
+        cls.__getattr__("communicator").send_packet(packet)
 
     def _recv_function(cls, function_name, args, kwargs):
         try:
@@ -242,6 +248,10 @@ class Connector:
         except AttributeError:
             pass  # communicator already None
 
+    @staticmethod
+    def is_connected():
+        return Connector.communicator.is_connected()
+
 
 class MultiConnector(metaclass=MetaSingletonConnector):
     functions = None
@@ -262,3 +272,6 @@ class MultiConnector(metaclass=MetaSingletonConnector):
         all_instances = MetaSingletonConnector.remove_all()
         for id_, connector in all_instances.items():
             connector.close_connection()
+
+    def is_connected(self):
+        return self.communicator.is_connected()

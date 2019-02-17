@@ -15,7 +15,7 @@ class TestCommunicator(unittest.TestCase):
 
 class TestClientCommunicator(unittest.TestCase):
 
-    def test_connection(self):
+    def test_connection_single(self):
 
         DummyServerCommunicator.connect(dummy_address)
         self.assertIsInstance(ServerCommunicator.communicator, Communicator)
@@ -24,6 +24,10 @@ class TestClientCommunicator(unittest.TestCase):
         DummyServerCommunicator.close_connection()
         self.assertIsInstance(ServerCommunicator.communicator, type(None))
         self.assertIsInstance(DummyServerCommunicator.communicator, type(None))
+
+    def test_functions_communicator(self):
+        DummyMultiServerCommunicator(0).connect(dummy_address)
+        DummyMultiServerCommunicator(0).functions.dummy_function()
 
 
 class TestNewConnectionListener(unittest.TestCase):
@@ -65,6 +69,10 @@ class TestNewConnectionListener(unittest.TestCase):
             DummyMultiServerCommunicator(1).close_connection()
 
         self.assertEqual(threading.active_count(), 1)
+
+
+def dummy_function():
+    print("Dummy function called")
 
 
 if __name__ == '__main__':
