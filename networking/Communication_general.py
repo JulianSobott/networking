@@ -20,13 +20,14 @@ class Communicator(threading.Thread):
 
     CHUNK_SIZE = 1024
 
-    def __init__(self, address, id_=0, socket_connection=None):
-        super().__init__(name=f"Communicator_thread_{id_}")
+    def __init__(self, address, id_=0, socket_connection=None, keep_connection=True):
+        super().__init__(name=f"{'Server' if socket_connection is None else 'Client'}_Communicator_thread_{id_}")
         self._socket_connection = socket_connection
         self._address = address
         self._id = id_
         self._is_on = True
         self._is_connected = socket_connection is not None
+        self._keep_connection = keep_connection
         self._packets = []
         self._exit = threading.Event()
         self._time_till_next_check = 0.3
@@ -43,6 +44,7 @@ class Communicator(threading.Thread):
                 self._socket_connection = socket.create_connection(self._address)
                 self._is_connected = True
                 logger.debug(f"Successfully connected to: {str(self._address)}")
+                return
             except ConnectionRefusedError:
                 logger.warning("Could not connect to server with address: (%s)", str(self._address))
             except OSError as e:
@@ -58,31 +60,40 @@ class Communicator(threading.Thread):
 
     def _wait_for_new_input(self):
         packet_builder = PacketBuilder()
-        while self._is_on:
-            if not self._is_connected:
-                self._connect()
-            try:
-                chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
-                if chunk_data == b"":
-                    logger.warning("Connection reset, (%s)", str(self._address))
+        with self._socket_connection:
+            while self._is_on:
+                logger.debug(f"{self.getName()} : {self._is_on}")
+                if self._is_on and not self._is_connected:
+                    if self._keep_connection:
+                        self._connect()
+                    else:
+                        self._is_on = False
+                try:
+                    chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
+                    logger.debug(self._is_on)
+                    if chunk_data == b"":
+                        logger.warning("Connection reset, (%s)", str(self._address))
+                        self._is_connected = False
+                    else:
+                        possible_packet = packet_builder.add_chunk(chunk_data)
+                        if possible_packet is not None:
+                            self._packets.append(possible_packet)
+
+                except ConnectionResetError:
+                    logger.error("Connection reset, (%s)", str(self._address))
                     self._is_connected = False
-                else:
-                    possible_packet = packet_builder.add_chunk(chunk_data)
-                    if possible_packet is not None:
-                        self._packets.append(possible_packet)
 
-            except ConnectionResetError:
-                logger.error("Connection reset, (%s)", str(self._address))
-                self._is_connected = False
+                except ConnectionAbortedError:
+                    logger.error("Connection aborted, (%s)", str(self._address))
+                    self._is_connected = False
 
-            except ConnectionAbortedError:
-                logger.error("Connection aborted, (%s)", str(self._address))
-                self._is_connected = False
+                except OSError:
+                    logger.error("TCP connection closed while listening")
+                    self._is_connected = False
 
-            except OSError:
-                logger.error("TCP connection closed while listening")
-                self._is_connected = False
-            self._exit.wait(self._time_till_next_check)
+                self._exit.wait(self._time_till_next_check)
+
+            logger.debug(f"finished {self.getName()}")
 
     def send_packet(self, packet):
         try:
@@ -128,12 +139,14 @@ class Communicator(threading.Thread):
 
     def stop(self):
         self._is_on = False
+        self._exit.set()
         try:
+            pass
             self._socket_connection.close()
         except AttributeError:
+            logger.debug("Connection already closed")
             pass    # Connection already closed
         self._is_connected = False
-        self._exit.set()
         self.join()
         remove_manager(self._id)
 
@@ -197,6 +210,26 @@ class MetaFunctionCommunicator(type):
         return func
 
 
+class MetaSingletonConnector(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        id_ = args[0]
+        if id_ not in cls._instances:
+            cls._instances[id_] = super(MetaSingletonConnector, cls).__call__(id_)
+        return cls._instances[id_]
+
+    @classmethod
+    def remove(mcs, id_):
+        return mcs._instances.pop(id_)
+
+    @classmethod
+    def remove_all(mcs):
+        ret = dict(mcs._instances)
+        mcs._instances = {}
+        return ret
+
+
 class Connector:
     functions = None
     communicator = None
@@ -207,4 +240,25 @@ class Connector:
             Connector.communicator.stop()
             Connector.communicator = None
         except AttributeError:
-            pass    # communicator already None
+            pass  # communicator already None
+
+
+class MultiConnector(metaclass=MetaSingletonConnector):
+    functions = None
+
+    def __init__(self, id_):
+        self._id = id_
+        self.communicator = None
+
+    def close_connection(self):
+        try:
+            self.communicator.stop()
+            self.communicator = None
+        except AttributeError:
+            pass  # communicator already None
+
+    @staticmethod
+    def close_all_connections():
+        all_instances = MetaSingletonConnector.remove_all()
+        for id_, connector in all_instances.items():
+            connector.close_connection()

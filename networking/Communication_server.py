@@ -39,7 +39,7 @@ class NewConnectionListener(threading.Thread):
             try:
                 (connection, addr) = self._socket_connection.accept()
                 logger.info("New client connected: (%s)", str(addr))
-                client = Communicator(self._address, self._produce_next_client_id(), connection)
+                client = Communicator(self._address, self._produce_next_client_id(), connection, keep_connection=False)
                 client.start()
                 self._clients.append(client)
             except OSError:
@@ -59,8 +59,9 @@ class NewConnectionListener(threading.Thread):
         logger.info("Closed server listener")
 
     def stop_connections(self):
-        for t in self._clients:
-            t.join()
+        for client in self._clients:
+            client.stop()
+            client.join()
 
 
 class ClientCommunicator(Connector):
