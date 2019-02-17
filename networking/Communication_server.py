@@ -11,7 +11,7 @@ import threading
 import socket
 
 from networking.Logging import logger
-from networking.Communication_general import Communicator
+from networking.Communication_general import Communicator, Connector, MetaFunctionCommunicator
 
 
 class NewConnectionListener(threading.Thread):
@@ -61,3 +61,11 @@ class NewConnectionListener(threading.Thread):
     def stop_connections(self):
         for t in self._clients:
             t.join()
+
+
+class ClientCommunicator(Connector):
+    pass
+
+
+class ClientFunctions(metaclass=MetaFunctionCommunicator):
+    pass

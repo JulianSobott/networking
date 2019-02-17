@@ -190,7 +190,6 @@ class MetaFunctionCommunicator(type):
             ret_value = e
         ret_kwargs = {"return": ret_value}
         data_packet = DataPacket(**ret_kwargs)
-        Connector.communicator: Communicator
         Connector.communicator.send_packet(data_packet)
 
     def __getattr__(self, item):
