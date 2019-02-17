@@ -43,8 +43,9 @@ class NewConnectionListener(threading.Thread):
                 client.start()
                 self._clients.append(client)
             except OSError:
-                logger.error("TCP connection closed while listening")
-                # TODO: handle (if possible)
+                if self._is_on:
+                    logger.error("TCP connection closed while listening")
+                    # TODO: handle (if possible)
 
     def _produce_next_client_id(self):
         try:
@@ -62,6 +63,14 @@ class NewConnectionListener(threading.Thread):
         for client in self._clients:
             client.stop()
             client.join()
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.stop_listening()
+        self.stop_connections()
 
 
 class ClientCommunicator(Connector):

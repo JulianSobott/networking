@@ -34,34 +34,35 @@ class TestNewConnectionListener(unittest.TestCase):
         listener.stop_listening()
         self.assertEqual(listener._is_on, False)
 
+    def test_context_guard(self):
+        with NewConnectionListener(dummy_address) as listener:
+            self.assertEqual(listener._is_on, True)
+            DummyServerCommunicator.connect(dummy_address)
+            DummyServerCommunicator.close_connection()
+        self.assertEqual(listener._is_on, False)
+        self.assertEqual(threading.active_count(), 1)
+
     def test_single_connection(self):
-        listener = NewConnectionListener(dummy_address)
-        listener.start()
-        DummyMultiServerCommunicator(0).connect(dummy_address)
+        with NewConnectionListener(dummy_address):
+            DummyMultiServerCommunicator(0).connect(dummy_address)
 
-        time.sleep(1)   # provides a clearer output, but also works without
-        self.assertEqual(threading.active_count(), 4)
+            time.sleep(1)   # provides a clearer output, but also works without
+            self.assertEqual(threading.active_count(), 4)
 
-        DummyMultiServerCommunicator(0).close_connection()
-        listener.stop_listening()
-        listener.stop_connections()
+            DummyMultiServerCommunicator(0).close_connection()
 
         self.assertEqual(threading.active_count(), 1)
 
     def test_multiple_connections(self):
-        listener = NewConnectionListener(dummy_address)
-        listener.start()
-        DummyMultiServerCommunicator(0).connect(dummy_address)
-        DummyMultiServerCommunicator(1).connect(dummy_address)
+        with NewConnectionListener(dummy_address):
+            DummyMultiServerCommunicator(0).connect(dummy_address)
+            DummyMultiServerCommunicator(1).connect(dummy_address)
 
-        time.sleep(1)  # provides a clearer output, but also works without
-        self.assertEqual(threading.active_count(), 6)
+            time.sleep(1)  # provides a clearer output, but also works without
+            self.assertEqual(threading.active_count(), 6)
 
-        DummyMultiServerCommunicator(0).close_connection()
-        DummyMultiServerCommunicator(1).close_connection()
-
-        listener.stop_listening()
-        listener.stop_connections()
+            DummyMultiServerCommunicator(0).close_connection()
+            DummyMultiServerCommunicator(1).close_connection()
 
         self.assertEqual(threading.active_count(), 1)
 
