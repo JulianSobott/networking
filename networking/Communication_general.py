@@ -276,6 +276,7 @@ class Connector:
                     time.sleep(wait_time)
                     waited += wait_time
                 if waited >= time_out:
+                    logger.debug("Stopped communicator due to timeout")
                     connector.communicator.stop()
         assert isinstance(connector.communicator, Communicator)
         return connector.communicator.is_connected()

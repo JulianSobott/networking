@@ -15,10 +15,10 @@ from Logging import logger
 from Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress
 
 
-class NewConnectionListener(threading.Thread):
+class ClientManager(threading.Thread):
 
     def __init__(self, address: SocketAddress) -> None:
-        super().__init__(name="NewConnectionListener")
+        super().__init__(name="ClientManager")
         self._socket_connection = socket.socket()
         self.clients: Dict[int, Communicator] = {}
         self._next_client_id = 0
@@ -75,7 +75,7 @@ class NewConnectionListener(threading.Thread):
             client = self.clients[client_id]
             client.stop()
 
-    def __enter__(self) -> 'NewConnectionListener':
+    def __enter__(self) -> 'ClientManager':
         self.start()
         return self
 
