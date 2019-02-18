@@ -7,10 +7,10 @@
 
 @internal_use:
 """
-import time
+from typing import Optional
 
-from networking.Logging import logger
-from networking.Communication_general import SingleConnector, MultiConnector, MetaFunctionCommunicator
+from Logging import logger
+from Communication_general import SingleConnector, MultiConnector, MetaFunctionCommunicator, Communicator
 
 
 class ServerCommunicator(SingleConnector):
@@ -22,5 +22,5 @@ class MultiServerCommunicator(MultiConnector):
 
 
 class ServerFunctions(metaclass=MetaFunctionCommunicator):
-    communicator = None
+    communicator: Optional[Communicator] = None
 

@@ -4,7 +4,7 @@ import threading
 
 from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
 
-from networking.Communication_Client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
+from networking.Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
 from networking.Communication_server import NewConnectionListener
 from networking.Communication_general import Communicator
 from networking.Logging import logger

@@ -9,23 +9,24 @@
 """
 import threading
 import socket
+from typing import Dict
 
-from networking.Logging import logger
-from networking.Communication_general import Communicator, Connector, MetaFunctionCommunicator
+from Logging import logger
+from Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress
 
 
 class NewConnectionListener(threading.Thread):
 
-    def __init__(self, address):
+    def __init__(self, address: SocketAddress) -> None:
         super().__init__(name="NewConnectionListener")
         self._socket_connection = socket.socket()
-        self.clients = {}
+        self.clients: Dict[int, Communicator] = {}
         self._next_client_id = 0
         self._is_on = True
         self._address = address
         self._exit = threading.Event()
 
-    def run(self):
+    def run(self) -> None:
         try:
             self._socket_connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._socket_connection.bind(self._address)
@@ -49,36 +50,36 @@ class NewConnectionListener(threading.Thread):
                     logger.error("TCP connection closed while listening")
                     # TODO: handle (if possible)
 
-    def _produce_next_client_id(self):
+    def _produce_next_client_id(self) -> int:
         try:
             return self._next_client_id
         finally:
             self._next_client_id += 1
 
-    def remove_disconnected_client(self, communicator):
+    def remove_disconnected_client(self, communicator: Communicator) -> None:
         """Called when one side stops"""
         try:
             self.clients.pop(communicator.get_id())
         except KeyError:
             logger.error(f"Trying to remove a client that was never connected! {self.clients}: {communicator.get_id()}")
 
-    def stop_listening(self):
+    def stop_listening(self) -> None:
         self._is_on = False
         self._socket_connection.close()
         self.join()
         logger.info("Closed server listener")
 
-    def stop_connections(self):
+    def stop_connections(self) -> None:
         while len(self.clients.items()) > 0:
             client_id = self.clients.keys().__iter__().__next__()
             client = self.clients[client_id]
             client.stop()
 
-    def __enter__(self):
+    def __enter__(self) -> 'NewConnectionListener':
         self.start()
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.stop_listening()
         self.stop_connections()
 
