@@ -22,16 +22,17 @@ When a communicator is closed call remove_manger(), with the communicator ID
 @internal_use:
 
 """
-from .Logging import logger
+from typing import List, Optional, Dict, Tuple
+from Logging import logger
 
-from .Packets import FunctionPacket, DataPacket, Status_packet
+from Packets import FunctionPacket, DataPacket, Status_packet, Packet
 
 __all__ = ["IDManager", "remove_manager"]
 
 
 class IDManagers(type):
     """Each Communicator has its own ID. With this ID it gets its appropriate IDManager"""
-    _instances = {}
+    _instances: Dict[int, 'IDManager'] = {}
 
     def __call__(cls, *args, **kwargs):
         id_ = args[0]
@@ -39,51 +40,47 @@ class IDManagers(type):
             cls._instances[id_] = super(IDManagers, cls).__call__(id_)
         return cls._instances[id_]
 
-    @classmethod
-    def remove(mcs, id_):
-        mcs._instances.pop(id_)
+    @staticmethod
+    def remove(id_):
+        IDManagers._instances.pop(id_)
 
 
 class IDManager(metaclass=IDManagers):
 
-    def __init__(self, id_):
+    def __init__(self, id_: int) -> None:
         self.id = id_
         self._function_id = 0
         self._inner_id = 0
         self._outer_id = 0
-        self._function_stack = []   # [function_id, last_inner_id]
+        self._function_stack: List[List[int]] = []   # [function_id, last_inner_id]
 
-    def set_ids_of_packet(self, packet):
+    def set_ids_of_packet(self, packet: Packet) -> Optional[Packet]:
         self._outer_id += 1
         outer_id = self._outer_id
         if isinstance(packet, FunctionPacket):
             func_id, inner_id = self._is_function_packet()
         elif isinstance(packet, DataPacket):
             func_id, inner_id = self._is_data_packet()
-        elif isinstance(packet, Status_packet):
-            func_id, inner_id = self._is_status_packet(packet)
         else:
             logger.error("Unknown packet_class (%s)", type(packet).__name__)
-            return
+            return None
 
         packet.set_ids(func_id, inner_id, outer_id)
         return packet
 
-    def update_ids_by_packet(self, packet):
-        self._outer_id = packet.id_container.outer_id
+    def update_ids_by_packet(self, packet: Packet) -> None:
+        self._outer_id = packet.header.id_container.outer_id
         if isinstance(packet, FunctionPacket):
             self._is_function_packet()
         elif isinstance(packet, DataPacket):
             self._is_data_packet()
-        elif isinstance(packet, Status_packet):
-            self._is_status_packet(packet)
         else:
             logger.error("Unknown packet_class (%s)", type(packet).__name__)
 
-    def get_next_outer_id(self):
+    def get_next_outer_id(self) -> int:
         return self._outer_id + 1
 
-    def _is_function_packet(self):
+    def _is_function_packet(self) -> Tuple[int, int]:
         self._function_id += 1
         self._inner_id = 1
         self._function_stack.append([self._function_id, self._inner_id])
@@ -91,22 +88,15 @@ class IDManager(metaclass=IDManagers):
         inner_id = self._inner_id
         return function_id, inner_id
 
-    def _is_data_packet(self):
+    def _is_data_packet(self) -> Tuple[int, int]:
         self._inner_id += 1
         self._function_stack[-1][1] = self._inner_id
         function_id = self._function_stack[-1][0]
         inner_id = self._function_stack[-1][1]
         return function_id, inner_id
 
-    def _is_status_packet(self, packet):
-        if packet.last_in_func:
-            function_id, self._inner_id = self._function_stack.pop(-1)
-        function_id = self._function_id
-        inner_id = self._inner_id + 1
-        return function_id, inner_id
 
-
-def remove_manager(id_):
+def remove_manager(id_: int) -> None:
     """Called when a communicator is stopped. So its ID Manager isn´t needed anymore"""
     try:
         IDManagers.remove(id_)

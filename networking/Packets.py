@@ -40,9 +40,9 @@ from enum import Enum
 import os
 import pickle
 
-from .utils import Ddict
-from .Logging import logger
-from .Data import IDContainer, pack_int_type, unpack_int_type, NUM_INT_BYTES, BYTEORDER, NUM_TYPE_BYTES, _unpack, _pack, \
+from utils import Ddict
+from Logging import logger
+from Data import IDContainer, pack_int_type, unpack_int_type, NUM_INT_BYTES, BYTEORDER, NUM_TYPE_BYTES, _unpack, _pack, \
     ByteStream, pack_int, ENCODING
 
 
