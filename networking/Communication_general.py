@@ -9,6 +9,7 @@
 """
 import threading
 import socket
+import time
 
 from networking.Logging import logger
 from networking.Packets import Packet, DataPacket, FunctionPacket, Header
@@ -240,33 +241,51 @@ class MetaSingletonConnector(type):
 class Connector:
     functions = None
     communicator = None
+    id = 0
 
     @staticmethod
-    def close_connection():
+    def connect(connector, addr, blocking=True, time_out=float("inf")):
+        if connector.communicator is None:
+            connector.communicator = Communicator(addr, id_=connector.id)
+            connector.functions.__setattr__(connector.functions, "communicator", connector.communicator)
+            connector.communicator.start()
+            if blocking:
+                waited = 0
+                wait_time = 0.01
+                while not connector.communicator.is_connected() and waited < time_out:
+                    time.sleep(wait_time)
+                    waited += wait_time
+
+    @staticmethod
+    def close_connection(connector, blocking=True, time_out=float("inf")):
         try:
-            Connector.communicator.stop()
-            Connector.communicator = None
+            connector.communicator.stop()
+            connector.communicator = None
+            if blocking:
+                waited = 0
+                wait_time = 0.01
+                while connector.communicator.is_Connected() and waited < time_out:
+                    time.sleep(wait_time)
+                    waited += wait_time
         except AttributeError:
             pass  # communicator already None
 
     @staticmethod
-    def is_connected():
-        return Connector.communicator.is_connected()
+    def is_connected(connector):
+        return connector.communicator.is_connected()
 
 
-class MultiConnector(metaclass=MetaSingletonConnector):
-    functions = None
+class MultiConnector(Connector, metaclass=MetaSingletonConnector):
 
     def __init__(self, id_):
-        self._id = id_
+        self.id = id_
         self.communicator = None
 
-    def close_connection(self):
-        try:
-            self.communicator.stop()
-            self.communicator = None
-        except AttributeError:
-            pass  # communicator already None
+    def connect(self, addr, blocking=True, time_out=float("inf")):
+        return super().connect(self, addr, blocking, time_out)
+
+    def close_connection(self, blocking=True, time_out=float("inf")):
+        return super().close_connection(self, blocking, time_out)
 
     @staticmethod
     def close_all_connections():
@@ -275,4 +294,20 @@ class MultiConnector(metaclass=MetaSingletonConnector):
             connector.close_connection()
 
     def is_connected(self):
-        return self.communicator.is_connected()
+        return super().is_connected(self)
+
+
+class SingleConnector(Connector):
+    """Only static accessible. Therefore only a single connector (per address) per machine possible"""
+
+    @classmethod
+    def connect(cls, addr, blocking=True, time_out=float("inf")):
+        return super().connect(cls, addr, blocking, time_out)
+
+    @classmethod
+    def close_connection(cls, blocking=True, time_out=float("inf")):
+        return super().close_connection(cls, blocking, time_out)
+
+    @classmethod
+    def is_connected(cls):
+        return super().is_connected(cls)
