@@ -19,7 +19,7 @@ class NewConnectionListener(threading.Thread):
     def __init__(self, address):
         super().__init__(name="NewConnectionListener")
         self._socket_connection = socket.socket()
-        self.clients = []
+        self.clients = {}
         self._next_client_id = 0
         self._is_on = True
         self._address = address
@@ -34,14 +34,16 @@ class NewConnectionListener(threading.Thread):
             # [WinError 10038] socket closed before
             self._is_on = False
 
+        self._socket_connection.listen(4)
         while self._is_on:
-            self._socket_connection.listen(4)
             try:
                 (connection, addr) = self._socket_connection.accept()
                 logger.info("New client connected: (%s)", str(addr))
-                client = Communicator(self._address, self._produce_next_client_id(), connection, from_accept=True)
+                client_id = self._produce_next_client_id()
+                client = Communicator(self._address, client_id, connection, from_accept=True,
+                                      on_close=self.remove_disconnected_client)
                 client.start()
-                self.clients.append(client)
+                self.clients[client_id] = client
             except OSError:
                 if self._is_on:
                     logger.error("TCP connection closed while listening")
@@ -53,6 +55,13 @@ class NewConnectionListener(threading.Thread):
         finally:
             self._next_client_id += 1
 
+    def remove_disconnected_client(self, communicator):
+        """Called when one side stops"""
+        try:
+            self.clients.pop(communicator.get_id())
+        except KeyError:
+            logger.error(f"Trying to remove a client that was never connected! {self.clients}: {communicator.get_id()}")
+
     def stop_listening(self):
         self._is_on = False
         self._socket_connection.close()
@@ -60,9 +69,10 @@ class NewConnectionListener(threading.Thread):
         logger.info("Closed server listener")
 
     def stop_connections(self):
-        for client in self.clients:
+        while len(self.clients.items()) > 0:
+            client_id = self.clients.keys().__iter__().__next__()
+            client = self.clients[client_id]
             client.stop()
-            client.join()
 
     def __enter__(self):
         self.start()

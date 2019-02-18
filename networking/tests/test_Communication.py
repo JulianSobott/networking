@@ -21,16 +21,73 @@ class TestConnecting(unittest.TestCase):
             wait_till_condition(lambda: len(listener.clients) == 1)
 
             self.assertEqual(len(listener.clients), 1)
-            self.assertEqual(get_num_non_dummy_threads(), 4)   # Main, listener, client_communicator, server_communicator
+            self.assertEqual(get_num_non_dummy_threads(), 4)  # Main, listener, client_communicator, server_communicator
+            self.assertEqual(listener.clients[0]._socket_connection.getpeername(),
+                             DummyServerCommunicator.communicator._socket_connection.getsockname())
 
             DummyServerCommunicator.close_connection()
             wait_till_joined(DummyServerCommunicator.communicator)
-            wait_till_joined(listener.clients[0])
+            wait_till_condition(lambda: len(listener.clients.values()) == 0)
+            # wait_till_condition(lambda: get_num_non_dummy_threads() == 2)
 
             self.assertEqual(get_num_non_dummy_threads(), 2)  # Main, listener
         wait_till_joined(listener)
 
         self.assertEqual(get_num_non_dummy_threads(), 1)
+
+    def test_multiple_clients(self):
+        with NewConnectionListener(dummy_address) as listener:
+            DummyMultiServerCommunicator(0).connect(dummy_address)
+            DummyMultiServerCommunicator(1).connect(dummy_address)
+
+            wait_till_condition(lambda: len(listener.clients) == 2)
+
+            self.assertEqual(len(listener.clients), 2)
+
+            self.assertEqual(get_num_non_dummy_threads(), 6)
+            # Main, listener, 2 * client_communicator, 2 * server_communicator
+            self.assertEqual(listener.clients[0]._socket_connection.getpeername(),
+                             DummyMultiServerCommunicator(0).communicator._socket_connection.getsockname())
+            self.assertEqual(listener.clients[1]._socket_connection.getpeername(),
+                             DummyMultiServerCommunicator(1).communicator._socket_connection.getsockname())
+
+            DummyMultiServerCommunicator(0).close_connection()
+            DummyMultiServerCommunicator(1).close_connection()
+
+            wait_till_joined(DummyMultiServerCommunicator(0).communicator)
+            wait_till_joined(DummyMultiServerCommunicator(1).communicator)
+            wait_till_condition(lambda: len(listener.clients.values()) == 0)
+            logger.debug(threading.enumerate())
+            self.assertEqual(get_num_non_dummy_threads(), 2)  # Main, listener
+        wait_till_joined(listener)
+
+        self.assertEqual(get_num_non_dummy_threads(), 1)
+
+    def test_offline_server(self):
+        connected = DummyServerCommunicator.connect(dummy_address, time_out=1)
+        self.assertEqual(get_num_non_dummy_threads(), 1)
+        self.assertEqual(connected, False)
+
+    def test_server_turn_on(self):
+        DummyServerCommunicator.connect(dummy_address, blocking=False)
+        with NewConnectionListener(dummy_address) as listener:
+            wait_till_condition(lambda: len(listener.clients) == 1)
+            self.assertEqual(len(listener.clients), 1)
+            DummyServerCommunicator.close_connection()
+            wait_till_joined(DummyServerCommunicator.communicator)
+            wait_till_condition(lambda: len(listener.clients) == 0)
+            self.assertEqual(len(listener.clients), 0)
+        self.assertEqual(get_num_non_dummy_threads(), 1)
+
+    def test_listener_clients(self):
+        with NewConnectionListener(dummy_address) as listener:
+            self.assertEqual(len(listener.clients.values()), 0)
+            DummyServerCommunicator.connect(dummy_address)
+            wait_till_condition(lambda: len(listener.clients) == 1)
+            self.assertEqual(len(listener.clients.values()), 1)
+            DummyServerCommunicator.close_connection()
+            wait_till_condition(lambda: len(listener.clients) == 0)
+            self.assertEqual(len(listener.clients.values()), 0)
 
 
 class TestCommunicator(unittest.TestCase):

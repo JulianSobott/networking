@@ -21,17 +21,18 @@ class Communicator(threading.Thread):
 
     CHUNK_SIZE = 1024
 
-    def __init__(self, address, id_=0, socket_connection=socket.socket(), from_accept=False):
+    def __init__(self, address, id_=0, socket_connection=socket.socket(), from_accept=False, on_close=None):
         super().__init__(name=f"{'Client' if from_accept else 'Server'}_Communicator_thread_{id_}")
         self._socket_connection = socket_connection
         self._address = address
         self._id = id_
         self._is_on = True
-        self._is_connected = socket_connection is not None
+        self._is_connected = from_accept
         self._keep_connection = not from_accept
         self._packets = []
         self._exit = threading.Event()
         self._time_till_next_check = 0.3
+        self._on_close = on_close
 
     def run(self):
         if not self._is_connected:
@@ -68,8 +69,7 @@ class Communicator(threading.Thread):
                     if self._keep_connection:
                         self._connect()
                     else:
-                        self._is_on = False
-                        continue
+                        self.stop(is_same_thread=True)
                 try:
                     chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
                     logger.debug(self._is_on)
@@ -141,7 +141,8 @@ class Communicator(threading.Thread):
                 pass    # List is empty -> wait
             self._exit.wait(self._time_till_next_check)
 
-    def stop(self):
+    def stop(self, is_same_thread=False):
+        """Calling from another thread"""
         self._is_on = False
         self._exit.set()
         try:
@@ -151,11 +152,19 @@ class Communicator(threading.Thread):
             logger.debug("Connection already closed")
             pass    # Connection already closed
         self._is_connected = False
-        self.join()
+        if not is_same_thread:
+            self.join()
         remove_manager(self._id)
+        try:
+            self._on_close(self)
+        except TypeError:
+            pass    # no function provided
 
     def is_connected(self):
         return self._is_connected
+
+    def get_id(self):
+        return self._id
 
 
 class PacketBuilder:
@@ -255,6 +264,10 @@ class Connector:
                 while not connector.communicator.is_connected() and waited < time_out:
                     time.sleep(wait_time)
                     waited += wait_time
+                if waited >= time_out:
+                    connector.communicator.stop()
+        assert isinstance(connector.communicator, Communicator)
+        return connector.communicator.is_connected()
 
     @staticmethod
     def close_connection(connector, blocking=True, time_out=float("inf")):
