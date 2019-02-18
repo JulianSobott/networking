@@ -2,11 +2,35 @@ import unittest
 import time
 import threading
 
-from networking.Communication_Client import *
-from networking.Communication_server import *
+from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
+
+from networking.Communication_Client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
+from networking.Communication_server import NewConnectionListener
 from networking.Communication_general import Communicator
+from networking.Logging import logger
 
 dummy_address = ("127.0.0.1", 5000)
+
+
+class TestConnecting(unittest.TestCase):
+
+    def test_single_client(self):
+        with NewConnectionListener(dummy_address) as listener:
+            DummyServerCommunicator.connect(dummy_address)
+
+            wait_till_condition(lambda: len(listener.clients) == 1)
+
+            self.assertEqual(len(listener.clients), 1)
+            self.assertEqual(get_num_non_dummy_threads(), 4)   # Main, listener, client_communicator, server_communicator
+
+            DummyServerCommunicator.close_connection()
+            wait_till_joined(DummyServerCommunicator.communicator)
+            wait_till_joined(listener.clients[0])
+
+            self.assertEqual(get_num_non_dummy_threads(), 2)  # Main, listener
+        wait_till_joined(listener)
+
+        self.assertEqual(get_num_non_dummy_threads(), 1)
 
 
 class TestCommunicator(unittest.TestCase):
@@ -71,8 +95,20 @@ class TestNewConnectionListener(unittest.TestCase):
         self.assertEqual(threading.active_count(), 1)
 
 
-def dummy_function():
-    print("Dummy function called")
+class DummyServerCommunicator(ServerCommunicator):
+    class _DummyServerFunctions(ServerFunctions):
+        from networking_example.example_dummy_functions import dummy_no_arg_no_ret
+        pass
+
+    functions = _DummyServerFunctions
+
+
+class DummyMultiServerCommunicator(MultiServerCommunicator):
+    class _DummyServerFunctions(ServerFunctions):
+        from networking_example.example_dummy_functions import dummy_no_arg_no_ret
+        pass
+
+    functions = _DummyServerFunctions
 
 
 if __name__ == '__main__':

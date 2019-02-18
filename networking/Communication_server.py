@@ -39,7 +39,7 @@ class NewConnectionListener(threading.Thread):
             try:
                 (connection, addr) = self._socket_connection.accept()
                 logger.info("New client connected: (%s)", str(addr))
-                client = Communicator(self._address, self._produce_next_client_id(), connection, from_accept=False)
+                client = Communicator(self._address, self._produce_next_client_id(), connection, from_accept=True)
                 client.start()
                 self.clients.append(client)
             except OSError:
