@@ -21,9 +21,9 @@ Data Types that can be packed (and their limitations):
 @TODO_:
 
 """
-
-from .utils import Ddict, load_dict_from_json, dump_dict_to_json
-from .Logging import logger
+from typing import Tuple, Any
+from utils import Ddict, load_dict_from_json, dump_dict_to_json
+from Logging import logger
 
 NUM_TYPE_BYTES = 3
 ENCODING = "utf-8"
@@ -44,11 +44,11 @@ types = Ddict({
 })
 
 
-def _pack(*args):
+def _pack(*args) -> bytes:
     byte_string = b""
 
     for value in args:
-        val_type = type(value)
+        val_type: type = type(value)
         try:
             type_num = types[val_type]
         except KeyError:
@@ -93,7 +93,7 @@ def _pack(*args):
     return byte_string
 
 
-def _unpack(bytes_):
+def _unpack(bytes_) -> tuple:
     if isinstance(bytes_, bytes):
         byte_stream = ByteStream(bytes_)
     else:
@@ -105,6 +105,7 @@ def _unpack(bytes_):
             val_type = types[type_num]
         except KeyError:
             raise KeyError()
+        value: Any
         if val_type is int:
             value = byte_stream.next_int()
         elif val_type is float:
@@ -139,7 +140,7 @@ class IDContainer:
 
     TOTAL_BYTE_LENGTH = 3 * NUM_INT_BYTES + 3 * NUM_TYPE_BYTES
 
-    def __init__(self, function_id, inner_id, outer_id):
+    def __init__(self, function_id: int, inner_id: int, outer_id: int) -> None:
         self.function_id = function_id
         self.inner_id = inner_id
         self.outer_id = outer_id
@@ -148,25 +149,25 @@ class IDContainer:
     def default_init(cls):
         return cls.__call__(-1, -1, -1)
 
-    def pack(self):
+    def pack(self) -> bytes:
         byte_string = pack_int(self.function_id)
         byte_string += pack_int(self.inner_id)
         byte_string += pack_int(self.outer_id)
         return byte_string
 
     @classmethod
-    def from_bytes(cls, byte_stream):
+    def from_bytes(cls, byte_stream: 'ByteStream') -> 'IDContainer':
         function_id = byte_stream.next_int()
         inner_id = byte_stream.next_int()
         outer_id = byte_stream.next_int()
         return cls.__call__(function_id, inner_id, outer_id)
 
-    def set_ids(self, function_id, inner_id, outer_id):
+    def set_ids(self, function_id: int, inner_id: int, outer_id: int):
         self.function_id = function_id
         self.inner_id = inner_id
         self.outer_id = outer_id
 
-    def get_ids(self):
+    def get_ids(self) -> Tuple[int, int, int]:
         return self.function_id, self.inner_id, self.outer_id
 
     def __repr__(self):
@@ -182,18 +183,18 @@ class IDContainer:
 
 class ByteStream:
 
-    def __init__(self, byte_string: bytes):
+    def __init__(self, byte_string: bytes) -> None:
         self.byte_string = byte_string
         self.idx = 0
         self.length = len(byte_string)
         self.remaining_length = self.length
         self.reached_end = False
 
-    def next_int(self):
+    def next_int(self) -> int:
         byte_string = self.next_bytes(NUM_INT_BYTES)
         return int.from_bytes(byte_string, BYTEORDER, signed=True)
 
-    def next_bytes(self, num_bytes):
+    def next_bytes(self, num_bytes: int) -> bytes:
         assert num_bytes > 0, "This function is not meant to be called with negative values"
         try:
             return self.byte_string[self.idx: self.idx + num_bytes]
@@ -202,13 +203,13 @@ class ByteStream:
             if self.reached_end and self.idx > self.length:
                 raise IndexError("Byte string ran out of scope")
 
-    def _inc_idx(self, amount):
+    def _inc_idx(self, amount: int) -> None:
         self.idx += amount
         self.remaining_length -= amount
         if self.remaining_length <= 0:
             self.reached_end = True
 
-    def remove_consumed_bytes(self):
+    def remove_consumed_bytes(self) -> None:
         self.byte_string = self.byte_string[self.idx:]
         self.length = len(self.byte_string)
         self.remaining_length = self.length
@@ -229,14 +230,14 @@ class ByteStream:
         return str(self.byte_string)
 
 
-def pack_int_type(int_type):
+def pack_int_type(int_type: int) -> bytes:
     return int.to_bytes(int_type, NUM_TYPE_BYTES, BYTEORDER)
 
 
-def unpack_int_type(full_byte_string):
+def unpack_int_type(full_byte_string: bytes) -> int:
     return int.from_bytes(full_byte_string[:NUM_TYPE_BYTES], BYTEORDER)
 
 
-def pack_int(num):
+def pack_int(num: int) -> bytes:
     return int.to_bytes(num, NUM_INT_BYTES, BYTEORDER, signed=True)
 
