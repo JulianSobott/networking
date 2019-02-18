@@ -19,7 +19,7 @@ class NewConnectionListener(threading.Thread):
     def __init__(self, address):
         super().__init__(name="NewConnectionListener")
         self._socket_connection = socket.socket()
-        self._clients = []
+        self.clients = []
         self._next_client_id = 0
         self._is_on = True
         self._address = address
@@ -39,9 +39,9 @@ class NewConnectionListener(threading.Thread):
             try:
                 (connection, addr) = self._socket_connection.accept()
                 logger.info("New client connected: (%s)", str(addr))
-                client = Communicator(self._address, self._produce_next_client_id(), connection, keep_connection=False)
+                client = Communicator(self._address, self._produce_next_client_id(), connection, from_accept=False)
                 client.start()
-                self._clients.append(client)
+                self.clients.append(client)
             except OSError:
                 if self._is_on:
                     logger.error("TCP connection closed while listening")
@@ -60,7 +60,7 @@ class NewConnectionListener(threading.Thread):
         logger.info("Closed server listener")
 
     def stop_connections(self):
-        for client in self._clients:
+        for client in self.clients:
             client.stop()
             client.join()
 

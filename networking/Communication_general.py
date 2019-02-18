@@ -20,14 +20,14 @@ class Communicator(threading.Thread):
 
     CHUNK_SIZE = 1024
 
-    def __init__(self, address, id_=0, socket_connection=socket.socket(), keep_connection=True):
-        super().__init__(name=f"{'Server' if socket_connection is None else 'Client'}_Communicator_thread_{id_}")
+    def __init__(self, address, id_=0, socket_connection=socket.socket(), from_accept=False):
+        super().__init__(name=f"{'Client' if from_accept else 'Server'}_Communicator_thread_{id_}")
         self._socket_connection = socket_connection
         self._address = address
         self._id = id_
         self._is_on = True
         self._is_connected = socket_connection is not None
-        self._keep_connection = keep_connection
+        self._keep_connection = not from_accept
         self._packets = []
         self._exit = threading.Event()
         self._time_till_next_check = 0.3
@@ -68,6 +68,7 @@ class Communicator(threading.Thread):
                         self._connect()
                     else:
                         self._is_on = False
+                        continue
                 try:
                     chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
                     logger.debug(self._is_on)
