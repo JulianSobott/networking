@@ -14,6 +14,16 @@ dummy_address = ("127.0.0.1", 5000)
 
 class TestConnecting(unittest.TestCase):
 
+    def test_single_client_connect(self):
+        DummyServerCommunicator.connect(dummy_address, time_out=1)
+        self.assertIsInstance(DummyServerCommunicator.functions.__getattr__("communicator"), Communicator)
+
+    def test_multi_client_connect(self):
+        DummyMultiServerCommunicator(0).connect(dummy_address, time_out=1)
+        self.assertIsInstance(DummyMultiServerCommunicator(0).functions.__getattr__("communicator"), Communicator)
+        DummyMultiServerCommunicator(1).connect(dummy_address, time_out=1)
+        self.assertIsInstance(DummyMultiServerCommunicator(1).functions.__getattr__("communicator"), Communicator)
+
     def test_single_client(self):
         with NewConnectionListener(dummy_address) as listener:
             DummyServerCommunicator.connect(dummy_address)

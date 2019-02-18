@@ -216,7 +216,7 @@ class ByteStream:
         self.reached_end = self.length == 0
         self.idx = 0
 
-    def __iadd__(self, other):
+    def __iadd__(self, other: bytes) -> 'ByteStream':
         if not isinstance(other, bytes):
             raise TypeError
         self.byte_string += other
