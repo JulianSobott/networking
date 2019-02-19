@@ -46,6 +46,7 @@ class TestPacking(TestCase):
 
     def test_tuple(self):
         single_value(self, ("Hello", 10, [2, 0]))
+        single_value(self, ())
 
     def test_bool(self):
         single_value(self, True)

@@ -98,6 +98,8 @@ def _unpack(bytes_) -> tuple:
         byte_stream = ByteStream(bytes_)
     else:
         byte_stream = bytes_
+    if byte_stream.reached_end:
+        return ()
     values = []
     while not byte_stream.reached_end:
         type_num = int.from_bytes(byte_stream.next_bytes(NUM_TYPE_BYTES), BYTEORDER)
@@ -188,7 +190,7 @@ class ByteStream:
         self.idx = 0
         self.length = len(byte_string)
         self.remaining_length = self.length
-        self.reached_end = False
+        self.reached_end = self.remaining_length <= 0
 
     def next_int(self) -> int:
         byte_string = self.next_bytes(NUM_INT_BYTES)
@@ -201,7 +203,7 @@ class ByteStream:
         finally:
             self._inc_idx(num_bytes)
             if self.reached_end and self.idx > self.length:
-                raise IndexError("Byte string ran out of scope")
+                raise IndexError(f"Byte string ran out of scope: {self.idx} > {self.length}")
 
     def _inc_idx(self, amount: int) -> None:
         self.idx += amount

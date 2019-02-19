@@ -14,6 +14,15 @@ from networking.Data import ByteStream, pack_int
 
 class TestByteStream(TestCase):
 
+    def test_init(self):
+        byte_string = b""
+        byte_stream = ByteStream(byte_string)
+        self.assertEqual(byte_stream.byte_string, b"")
+        self.assertEqual(byte_stream.length, 0)
+        self.assertEqual(byte_stream.idx, 0)
+        self.assertEqual(byte_stream.remaining_length, 0)
+        self.assertEqual(byte_stream.reached_end, True)
+
     def test_next_int(self):
         first_int = 102
         second_int = 2089
