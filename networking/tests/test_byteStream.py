@@ -44,6 +44,7 @@ class TestByteStream(TestCase):
         byte_stream += add
         expected = b"HelloHello"
         self.assertEqual(byte_stream.byte_string, expected)
+        self.assertEqual(byte_stream.reached_end, False)
 
     def test_remove_consumed_bytes(self):
         byte_stream = ByteStream(b"Hello World")

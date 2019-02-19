@@ -223,7 +223,7 @@ class ByteStream:
         added_length = len(other)
         self.length += added_length
         self.remaining_length += added_length
-        self.reached_end = added_length > 0
+        self.reached_end = self.remaining_length <= 0
         return self
 
     def __repr__(self):
