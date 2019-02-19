@@ -39,7 +39,7 @@ New <cls>_packet:
 from enum import Enum
 import os
 import pickle
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, Callable
 
 from utils import Ddict
 from Logging import logger
@@ -113,8 +113,8 @@ class Packet:
         packet.header = header
         return packet
 
-    def set_ids(self, function_id: int, inner_id: int, outer_id: int) -> None:
-        self.header.id_container.set_ids(function_id, inner_id, outer_id)
+    def set_ids(self, function_id: int, outer_id: int) -> None:
+        self.header.id_container.set_ids(function_id, outer_id)
 
     def __eq__(self, other):
         if isinstance(other, Packet):
@@ -167,7 +167,7 @@ class DataPacket(Packet):
 
 class FunctionPacket(Packet):
 
-    def __init__(self, func, *args, **kwargs) -> None:
+    def __init__(self, func: Union[Callable, str], *args, **kwargs) -> None:
         super().__init__(self)
         if type(func) is str:
             self.function_name: str = func

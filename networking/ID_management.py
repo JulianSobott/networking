@@ -20,7 +20,7 @@ ID is the ID of the communicator. (per client one ID)
 When a communicator is closed call remove_manger(), with the communicator ID
 
 @internal_use:
-
+@TODO_: Adjust docstrings
 """
 from typing import List, Optional, Dict, Tuple
 from Logging import logger
@@ -49,27 +49,26 @@ class IDManager(metaclass=IDManagers):
 
     def __init__(self, id_: int) -> None:
         self.id = id_
-        self._function_id = 0
-        self._inner_id = 0
-        self._outer_id = 0
-        self._function_stack: List[List[int]] = []   # [function_id, last_inner_id]
+        self._next_function_id = 0
+        self._next_outer_id = 0
+        self._function_stack: List[int] = []
 
     def set_ids_of_packet(self, packet: Packet) -> Optional[Packet]:
-        self._outer_id += 1
-        outer_id = self._outer_id
+        outer_id = self._next_outer_id
         if isinstance(packet, FunctionPacket):
-            func_id, inner_id = self._is_function_packet()
+            func_id = self._is_function_packet()
         elif isinstance(packet, DataPacket):
-            func_id, inner_id = self._is_data_packet()
+            func_id = self._is_data_packet()
         else:
             logger.error("Unknown packet_class (%s)", type(packet).__name__)
             return None
 
-        packet.set_ids(func_id, inner_id, outer_id)
+        packet.set_ids(func_id, outer_id)
+        self._next_outer_id += 1
         return packet
 
     def update_ids_by_packet(self, packet: Packet) -> None:
-        self._outer_id = packet.header.id_container.outer_id
+        self._next_outer_id = packet.header.id_container.outer_id
         if isinstance(packet, FunctionPacket):
             self._is_function_packet()
         elif isinstance(packet, DataPacket):
@@ -78,22 +77,23 @@ class IDManager(metaclass=IDManagers):
             logger.error("Unknown packet_class (%s)", type(packet).__name__)
 
     def get_next_outer_id(self) -> int:
-        return self._outer_id + 1
+        return self._next_outer_id
 
-    def _is_function_packet(self) -> Tuple[int, int]:
-        self._function_id += 1
-        self._inner_id = 1
-        self._function_stack.append([self._function_id, self._inner_id])
-        function_id = self._function_id
-        inner_id = self._inner_id
-        return function_id, inner_id
+    def _is_function_packet(self) -> int:
+        self._function_stack.append(self._next_function_id)
+        function_id = self._next_function_id
 
-    def _is_data_packet(self) -> Tuple[int, int]:
-        self._inner_id += 1
-        self._function_stack[-1][1] = self._inner_id
-        function_id = self._function_stack[-1][0]
-        inner_id = self._function_stack[-1][1]
-        return function_id, inner_id
+        self._next_function_id += 1
+        return function_id
+
+    def _is_data_packet(self) -> int:
+        pass
+
+    def get_next_ids(self) -> Tuple[int, int]:
+        return self._next_function_id, self._next_outer_id
+
+    def get_function_stack(self) -> List[int]:
+        return self._function_stack
 
 
 def remove_manager(id_: int) -> None:

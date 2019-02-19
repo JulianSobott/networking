@@ -142,44 +142,39 @@ class IDContainer:
 
     TOTAL_BYTE_LENGTH = 3 * NUM_INT_BYTES + 3 * NUM_TYPE_BYTES
 
-    def __init__(self, function_id: int, inner_id: int, outer_id: int) -> None:
+    def __init__(self, function_id: int, outer_id: int) -> None:
         self.function_id = function_id
-        self.inner_id = inner_id
         self.outer_id = outer_id
 
     @classmethod
     def default_init(cls):
-        return cls.__call__(-1, -1, -1)
+        return cls.__call__(-1, -1)
 
     def pack(self) -> bytes:
         byte_string = pack_int(self.function_id)
-        byte_string += pack_int(self.inner_id)
         byte_string += pack_int(self.outer_id)
         return byte_string
 
     @classmethod
     def from_bytes(cls, byte_stream: 'ByteStream') -> 'IDContainer':
         function_id = byte_stream.next_int()
-        inner_id = byte_stream.next_int()
         outer_id = byte_stream.next_int()
-        return cls.__call__(function_id, inner_id, outer_id)
+        return cls.__call__(function_id, outer_id)
 
-    def set_ids(self, function_id: int, inner_id: int, outer_id: int):
+    def set_ids(self, function_id: int, outer_id: int):
         self.function_id = function_id
-        self.inner_id = inner_id
         self.outer_id = outer_id
 
-    def get_ids(self) -> Tuple[int, int, int]:
-        return self.function_id, self.inner_id, self.outer_id
+    def get_ids(self) -> Tuple[int, int]:
+        return self.function_id, self.outer_id
 
     def __repr__(self):
-        return f"IDContainer({str(self.function_id)}, {str(self.inner_id)}, {str(self.outer_id)})"
+        return f"IDContainer({str(self.function_id)}, {str(self.outer_id)})"
 
     def __eq__(self, other):
         if not isinstance(other, IDContainer):
             return False
         return (self.function_id == other.function_id and
-                self.inner_id == other.inner_id and
                 self.outer_id == other.outer_id)
 
 
