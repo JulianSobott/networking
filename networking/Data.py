@@ -195,7 +195,7 @@ class ByteStream:
         return int.from_bytes(byte_string, BYTEORDER, signed=True)
 
     def next_bytes(self, num_bytes: int) -> bytes:
-        assert num_bytes > 0, "This function is not meant to be called with negative values"
+        assert num_bytes >= 0, f"This function is not meant to be called with negative values ({num_bytes})"
         try:
             return self.byte_string[self.idx: self.idx + num_bytes]
         finally:
@@ -227,7 +227,7 @@ class ByteStream:
         return self
 
     def __repr__(self):
-        return str(self.byte_string)
+        return str(self.byte_string[:self.idx]) + "|" + str(self.byte_string[self.idx:])
 
 
 def pack_int_type(int_type: int) -> bytes:
