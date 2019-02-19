@@ -1,26 +1,23 @@
-"""
+docs = """
 @author: Julian Sobott
 @created: 13.11.2018
 @brief: Handles ids for proper network communication
 @description:
-Each packet has 3 ids: func_id - inner_id - outer_id
-func_id: increased for each new function. All Packets inside a function have same id
-        #Which packet belongs to which function
-inner_id: increased for each new packet inside a function
-        #Not necessary but easier to debug (see num packets inside function)
-outer_id: increased for each new packet.
+Each packet has 2 ids: function_id - global_id
+function_id: increased for each new function. FunctionPacket and DataPacket have the same function_id
+        # Which data_packet belongs to which function
+global_id: increased for each new packet.
         #See which packet is next. Watch packet loss
 
 IDManagers is a metaclass to deliver multiple IDManagers for multiple Communicators
 
 @external_use:
-Call IDManager([ID]) to work with it.
+Call IDManager(ID) to work with it.
 ID is the ID of the communicator. (per client one ID)
 
 When a communicator is closed call remove_manger(), with the communicator ID
 
 @internal_use:
-@TODO_: Adjust docstrings
 """
 from typing import List, Optional, Dict, Tuple
 from Logging import logger
@@ -46,15 +43,23 @@ class IDManagers(type):
 
 
 class IDManager(metaclass=IDManagers):
+    """ Sets IDs for each packet
+        Each packet has 2 ids: function_id - global_id
+        function_id: increased for each new function. FunctionPacket and DataPacket have the same function_id
+            # Which data_packet belongs to which function
+        global_id: increased for each new packet.
+            #See which packet is next. Watch packet loss
+    """
 
     def __init__(self, id_: int) -> None:
         self.id = id_
         self._next_function_id = 0
-        self._next_outer_id = 0
+        self._next_global_id = 0
         self._function_stack: List[int] = []
 
     def set_ids_of_packet(self, packet: Packet) -> Optional[Packet]:
-        outer_id = self._next_outer_id
+        """set ids of packet and adjust internal state"""
+        outer_id = self._next_global_id
         if isinstance(packet, FunctionPacket):
             func_id = self._is_function_packet()
         elif isinstance(packet, DataPacket):
@@ -64,11 +69,11 @@ class IDManager(metaclass=IDManagers):
             return None
 
         packet.set_ids(func_id, outer_id)
-        self._next_outer_id += 1
+        self._next_global_id += 1
         return packet
 
     def update_ids_by_packet(self, packet: Packet) -> None:
-        self._next_outer_id = packet.header.id_container.outer_id
+        self._next_global_id = packet.header.id_container.outer_id
         if isinstance(packet, FunctionPacket):
             self._is_function_packet()
         elif isinstance(packet, DataPacket):
@@ -77,7 +82,7 @@ class IDManager(metaclass=IDManagers):
             logger.error("Unknown packet_class (%s)", type(packet).__name__)
 
     def get_next_outer_id(self) -> int:
-        return self._next_outer_id
+        return self._next_global_id
 
     def _is_function_packet(self) -> int:
         self._function_stack.append(self._next_function_id)
@@ -87,10 +92,11 @@ class IDManager(metaclass=IDManagers):
         return function_id
 
     def _is_data_packet(self) -> int:
-        pass
+        function_id = self._function_stack.pop()
+        return function_id
 
     def get_next_ids(self) -> Tuple[int, int]:
-        return self._next_function_id, self._next_outer_id
+        return self._next_function_id, self._next_global_id
 
     def get_function_stack(self) -> List[int]:
         return self._function_stack

@@ -144,7 +144,7 @@ class IDContainer:
 
     def __init__(self, function_id: int, outer_id: int) -> None:
         self.function_id = function_id
-        self.outer_id = outer_id
+        self.global_id = outer_id
 
     @classmethod
     def default_init(cls):
@@ -152,7 +152,7 @@ class IDContainer:
 
     def pack(self) -> bytes:
         byte_string = pack_int(self.function_id)
-        byte_string += pack_int(self.outer_id)
+        byte_string += pack_int(self.global_id)
         return byte_string
 
     @classmethod
@@ -163,19 +163,19 @@ class IDContainer:
 
     def set_ids(self, function_id: int, outer_id: int):
         self.function_id = function_id
-        self.outer_id = outer_id
+        self.global_id = outer_id
 
     def get_ids(self) -> Tuple[int, int]:
-        return self.function_id, self.outer_id
+        return self.function_id, self.global_id
 
     def __repr__(self):
-        return f"IDContainer({str(self.function_id)}, {str(self.outer_id)})"
+        return f"IDContainer({str(self.function_id)}, {str(self.global_id)})"
 
     def __eq__(self, other):
         if not isinstance(other, IDContainer):
             return False
         return (self.function_id == other.function_id and
-                self.outer_id == other.outer_id)
+                self.global_id == other.global_id)
 
 
 class ByteStream:

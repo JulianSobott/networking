@@ -5,17 +5,16 @@
 
 all available packets:
 -FunctionPacket:
--Status_packet:
 -DataPacket:
--File_meta_packet:
+
 
 general packet byte string:
-<packet_byte_string_len><function_id><inner_id><outer_id><packet_cls_id><specific_packet_data>
+<packet_byte_string_len><function_id><global_id><packet_cls_id><specific_packet_data>
 
 
 GeneralPacket:
     Header:
-        - PacketType (Function, Data, Status, File)
+        - PacketType (Function, Data)
         - ID's
         - specific data size
     Specific Data:
@@ -31,10 +30,6 @@ New <cls>_packet:
     extend from packet
     implement: pack, unpack, __eq__, __str__
     add to packets
-
-@TODO:
-- create concept of Byte stream and extract packets (maybe in other file)
-- save delete unpack function in Packet
 """
 from enum import Enum
 import os
@@ -114,6 +109,7 @@ class Packet:
         return packet
 
     def set_ids(self, function_id: int, outer_id: int) -> None:
+        assert isinstance(function_id, int) and isinstance(outer_id, int), f"Ids must be int: ({function_id, outer_id}"
         self.header.id_container.set_ids(function_id, outer_id)
 
     def __eq__(self, other):
