@@ -73,7 +73,7 @@ class IDManager(metaclass=IDManagers):
         return packet
 
     def update_ids_by_packet(self, packet: Packet) -> None:
-        self._next_global_id = packet.header.id_container.outer_id
+        self._next_global_id = packet.header.id_container.global_id + 1
         if isinstance(packet, FunctionPacket):
             self._is_function_packet()
         elif isinstance(packet, DataPacket):
