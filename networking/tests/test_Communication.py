@@ -7,7 +7,9 @@ from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_til
 from Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
 from Communication_server import ClientManager
 from Communication_general import Communicator
+from Packets import FunctionPacket
 from Logging import logger
+from networking_example.example_dummy_functions import called
 
 dummy_address = ("127.0.0.1", 5000)
 
@@ -113,6 +115,19 @@ class TestConnecting(unittest.TestCase):
             DummyServerCommunicator.close_connection()
             wait_till_condition(lambda: len(listener.clients) == 0, timeout=2)
             self.assertEqual(len(listener.clients.values()), 0)
+
+
+class TestCommunicating(unittest.TestCase):
+
+    def test_send_function_add(self):
+        with ClientManager(dummy_address) as listener:
+            DummyServerCommunicator.connect(dummy_address)
+            self.assertEqual(called, False)
+            packet_sent = FunctionPacket("not", 10, name="John")
+            DummyServerCommunicator.communicator.send_packet(packet_sent)
+            wait_till_condition(lambda: len(listener.clients[0]._packets) == 1, timeout=2)
+            packet_recv = listener.clients[0]._packets[0]
+            self.assertEqual(packet_recv, packet_sent)
 
 
 class DummyServerCommunicator(ServerCommunicator):

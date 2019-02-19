@@ -141,4 +141,3 @@ class TestIDManager(TestCase):
         IDManager(0).update_ids_by_packet(packet)
         self.assertEqual((0, 3), packet.header.id_container.get_ids())
         self.assertEqual([], IDManager(0).get_function_stack())
-

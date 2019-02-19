@@ -76,7 +76,6 @@ class Communicator(threading.Thread):
                         self.stop(is_same_thread=True)
                 try:
                     chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
-                    logger.debug(self._is_on)
                     if chunk_data == b"":
                         logger.warning("Connection reset, (%s)", str(self._address))
                         self._is_connected = False
