@@ -14,19 +14,18 @@ from networking_example.example_dummy_functions import called
 dummy_address = ("127.0.0.1", 5000)
 
 
-def clean_start(func):
-    def wrapper(*args, **kwargs):
+class CommunicationTestCase(unittest.TestCase):
+    def tearDown(self):
+        DummyServerCommunicator.close_connection()
+        MultiServerCommunicator.close_all_connections()
+
+    def setUp(self):
         DummyMultiServerCommunicator.close_all_connections()
         DummyServerCommunicator.close_connection()
-        ret_value = func(*args, **kwargs)
-        return ret_value
-
-    return wrapper
 
 
-class TestConnecting(unittest.TestCase):
+class TestConnecting(CommunicationTestCase):
 
-    @clean_start
     def test_single_client_connect(self):
         DummyServerCommunicator.connect(dummy_address, time_out=0)
 
@@ -34,7 +33,6 @@ class TestConnecting(unittest.TestCase):
         self.assertEqual(DummyServerCommunicator.remote_functions().__getattr__("_connector"), DummyServerCommunicator)
         self.assertEqual(DummyServerCommunicator.remote_functions, DummyServerCommunicator.remote_functions())
 
-    @clean_start
     def test_multi_client_connect(self):
         DummyMultiServerCommunicator(0).connect(dummy_address, time_out=0)
         self.assertIsInstance(DummyMultiServerCommunicator(0).remote_functions.__getattr__("_connector"),
@@ -43,7 +41,6 @@ class TestConnecting(unittest.TestCase):
         self.assertIsInstance(DummyMultiServerCommunicator(1).remote_functions.__getattr__("_connector"),
                               DummyMultiServerCommunicator)
 
-    @clean_start
     def test_single_client(self):
         with ClientManager(dummy_address) as listener:
             DummyServerCommunicator.connect(dummy_address)
@@ -65,7 +62,6 @@ class TestConnecting(unittest.TestCase):
 
         self.assertEqual(get_num_non_dummy_threads(), 1)
 
-    @clean_start
     def test_multiple_clients(self):
         with ClientManager(dummy_address) as listener:
             DummyMultiServerCommunicator(0).connect(dummy_address)
@@ -93,13 +89,11 @@ class TestConnecting(unittest.TestCase):
 
         self.assertEqual(get_num_non_dummy_threads(), 1)
 
-    @clean_start
     def test_offline_server(self):
         connected = DummyServerCommunicator.connect(dummy_address, time_out=2)
         self.assertEqual(get_num_non_dummy_threads(), 1)
         self.assertEqual(connected, False)
 
-    @clean_start
     def test_server_turn_on(self):
         DummyServerCommunicator.connect(dummy_address, blocking=False)
         with ClientManager(dummy_address) as listener:
@@ -111,7 +105,6 @@ class TestConnecting(unittest.TestCase):
             self.assertEqual(len(listener.clients), 0)
         self.assertEqual(get_num_non_dummy_threads(), 1)
 
-    @clean_start
     def test_listener_clients(self):
         with ClientManager(dummy_address) as listener:
             self.assertEqual(len(listener.clients.values()), 0)
@@ -123,7 +116,7 @@ class TestConnecting(unittest.TestCase):
             self.assertEqual(len(listener.clients.values()), 0)
 
 
-class TestCommunicating(unittest.TestCase):
+class TestCommunicating(CommunicationTestCase):
 
     def test_send_function_add(self):
         with ClientManager(dummy_address) as listener:
