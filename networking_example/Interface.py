@@ -8,8 +8,24 @@
 @internal_use:
 """
 import networking as net
-from Server import dummy_func
+
+
+class ServerFunctions(net.ServerFunctions):
+    from Server import server_func
+
+
+class ClientFunctions(net.ClientFunctions):
+    from Client import client_func
 
 
 class ServerCommunicator(net.ServerCommunicator):
-    from Server import dummy_func
+    remote_functions = ServerFunctions
+    local_functions = ClientFunctions
+
+
+class ClientCommunicator(net.ClientCommunicator):
+    remote_functions = ClientFunctions
+    local_functions = ServerFunctions
+
+
+

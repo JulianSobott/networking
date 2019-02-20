@@ -8,10 +8,14 @@
 @internal_use:
 """
 
-called = False
-
 
 def dummy_no_arg_no_ret():
-    global called
-    called = True
-    print("Dummy function called")
+    print(f"Dummy function called")
+
+
+def dummy_args_ret(name: str) -> tuple:
+    from networking.tests.test_Communication import ClientCommunicator
+    c = ClientCommunicator
+    print(c.communicator)
+    print(name)
+    return 10, 10

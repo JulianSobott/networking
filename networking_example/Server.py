@@ -8,13 +8,14 @@
 @internal_use:
 """
 import networking as net
+from networking.Logging import logger
+import Interface
 
 
-def dummy_func(name):
-    print(f"Hello {name}")
-    return f"Goodbye {name}"
+def server_func():
+    logger.debug(Interface.ClientCommunicator.communicator)
+    ret_value = Interface.ClientCommunicator.remote_functions.client_func()
+    print(f"Server: {ret_value}")
+    return "Goodbye"
 
-
-if __name__ == '__main__':
-    server = net.Server("127.0.0.1", "5000")
 
