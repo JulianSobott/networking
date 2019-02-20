@@ -5,7 +5,7 @@ import threading
 from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
 
 from Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
-from Communication_server import ClientManager
+from Communication_server import ClientManager, ClientFunctions, ClientCommunicator
 from Communication_general import Communicator
 from Packets import FunctionPacket
 from Logging import logger
@@ -29,15 +29,15 @@ class TestConnecting(unittest.TestCase):
     def test_single_client_connect(self):
         DummyServerCommunicator.connect(dummy_address, time_out=1)
 
-        self.assertIsInstance(DummyServerCommunicator.functions.__getattr__("communicator"), Communicator)
-        self.assertIsInstance(DummyServerCommunicator.functions().__getattr__("communicator"), Communicator)
+        self.assertIsInstance(DummyServerCommunicator.remote_functions.__getattr__("communicator"), Communicator)
+        self.assertIsInstance(DummyServerCommunicator.remote_functions().__getattr__("communicator"), Communicator)
 
     @clean_start
     def test_multi_client_connect(self):
         DummyMultiServerCommunicator(0).connect(dummy_address, time_out=1)
-        self.assertIsInstance(DummyMultiServerCommunicator(0).functions.__getattr__("communicator"), Communicator)
+        self.assertIsInstance(DummyMultiServerCommunicator(0).remote_functions.__getattr__("communicator"), Communicator)
         DummyMultiServerCommunicator(1).connect(dummy_address, time_out=1)
-        self.assertIsInstance(DummyMultiServerCommunicator(1).functions.__getattr__("communicator"), Communicator)
+        self.assertIsInstance(DummyMultiServerCommunicator(1).remote_functions.__getattr__("communicator"), Communicator)
 
     @clean_start
     def test_single_client(self):
@@ -136,36 +136,45 @@ class TestCommunicating(unittest.TestCase):
         self.assertEqual(called, False)
         with ClientManager(dummy_address) as listener:
             DummyServerCommunicator.connect(dummy_address)
-            ret_value = DummyServerCommunicator.functions(timeout=2).dummy_no_arg_no_ret()
+            ret_value = DummyServerCommunicator.remote_functions(timeout=2).dummy_no_arg_no_ret()
             self.assertEqual(ret_value, None)
             self.assertEqual(called, True)
 
     def test_functions_no_connection(self):
-        self.assertRaises(ConnectionError, DummyServerCommunicator.functions(timeout=1).dummy_no_arg_no_ret)
+        self.assertRaises(ConnectionError, DummyServerCommunicator.remote_functions(timeout=1).dummy_no_arg_no_ret)
 
     def test_functions_timeout(self):
         # May fail if packets are handled at server is implemented
         with ClientManager(dummy_address):
             DummyServerCommunicator.connect(dummy_address)
-            ret = DummyServerCommunicator.functions(timeout=0).dummy_no_arg_no_ret()
+            ret = DummyServerCommunicator.remote_functions(timeout=0).dummy_no_arg_no_ret()
             self.assertIsInstance(ret, TimeoutError)
             DummyServerCommunicator.close_connection()
 
 
-class DummyServerCommunicator(ServerCommunicator):
-    class _DummyServerFunctions(ServerFunctions):
-        from networking_example.example_dummy_functions import dummy_no_arg_no_ret
-        pass
+class _DummyServerFunctions(ServerFunctions):
+    from networking_example.example_dummy_functions import dummy_no_arg_no_ret, dummy_args_no_ret
+    #def dummy_no_arg_no_ret(self) -> bool: ...
+    pass
 
-    functions = _DummyServerFunctions
+
+class _DummyClientFunctions(ClientFunctions):
+    pass
+
+
+class DummyServerCommunicator(ServerCommunicator):
+    remote_functions = _DummyServerFunctions
+    _local_functions = _DummyClientFunctions
 
 
 class DummyMultiServerCommunicator(MultiServerCommunicator):
-    class _DummyServerFunctions(ServerFunctions):
-        from networking_example.example_dummy_functions import dummy_no_arg_no_ret
-        pass
+    remote_functions = _DummyServerFunctions
+    _local_functions = _DummyClientFunctions
 
-    functions = _DummyServerFunctions
+
+class DummyClientCommunicator(ClientCommunicator):
+    remote_functions = _DummyClientFunctions
+    _local_functions = _DummyServerFunctions
 
 
 if __name__ == '__main__':

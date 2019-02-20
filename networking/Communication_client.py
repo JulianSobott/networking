@@ -22,5 +22,5 @@ class MultiServerCommunicator(MultiConnector):
 
 
 class ServerFunctions(Functions):
-    communicator: Optional[Communicator] = None
+    pass
 

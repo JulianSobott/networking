@@ -10,4 +10,5 @@
 
 @TODO:
 """
-from .Communication_client import ServerCommunicator
+from Communication_client import ServerCommunicator, ServerFunctions, MultiServerCommunicator
+from Communication_server import ClientCommunicator, ClientFunctions, ClientManager
