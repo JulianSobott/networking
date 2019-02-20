@@ -6,7 +6,7 @@ from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_til
 
 from Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
 from Communication_server import ClientManager, ClientFunctions, ClientCommunicator
-from Communication_general import Communicator
+from Communication_general import Communicator, Connector
 from Packets import FunctionPacket
 from Logging import logger
 from networking_example.example_dummy_functions import called
@@ -20,6 +20,7 @@ def clean_start(func):
         DummyServerCommunicator.close_connection()
         ret_value = func(*args, **kwargs)
         return ret_value
+
     return wrapper
 
 
@@ -27,17 +28,20 @@ class TestConnecting(unittest.TestCase):
 
     @clean_start
     def test_single_client_connect(self):
-        DummyServerCommunicator.connect(dummy_address, time_out=1)
+        DummyServerCommunicator.connect(dummy_address, time_out=0)
 
-        self.assertIsInstance(DummyServerCommunicator.remote_functions.__getattr__("communicator"), Communicator)
-        self.assertIsInstance(DummyServerCommunicator.remote_functions().__getattr__("communicator"), Communicator)
+        self.assertEqual(DummyServerCommunicator.remote_functions.__getattr__("_connector"), DummyServerCommunicator)
+        self.assertEqual(DummyServerCommunicator.remote_functions().__getattr__("_connector"), DummyServerCommunicator)
+        self.assertEqual(DummyServerCommunicator.remote_functions, DummyServerCommunicator.remote_functions())
 
     @clean_start
     def test_multi_client_connect(self):
-        DummyMultiServerCommunicator(0).connect(dummy_address, time_out=1)
-        self.assertIsInstance(DummyMultiServerCommunicator(0).remote_functions.__getattr__("communicator"), Communicator)
-        DummyMultiServerCommunicator(1).connect(dummy_address, time_out=1)
-        self.assertIsInstance(DummyMultiServerCommunicator(1).remote_functions.__getattr__("communicator"), Communicator)
+        DummyMultiServerCommunicator(0).connect(dummy_address, time_out=0)
+        self.assertIsInstance(DummyMultiServerCommunicator(0).remote_functions.__getattr__("_connector"),
+                              DummyMultiServerCommunicator)
+        DummyMultiServerCommunicator(1).connect(dummy_address, time_out=0)
+        self.assertIsInstance(DummyMultiServerCommunicator(1).remote_functions.__getattr__("_connector"),
+                              DummyMultiServerCommunicator)
 
     @clean_start
     def test_single_client(self):
@@ -147,14 +151,15 @@ class TestCommunicating(unittest.TestCase):
         # May fail if packets are handled at server is implemented
         with ClientManager(dummy_address):
             DummyServerCommunicator.connect(dummy_address)
-            ret = DummyServerCommunicator.remote_functions(timeout=0).dummy_no_arg_no_ret()
+            ret = DummyServerCommunicator.remote_functions(timeout=0).dummy_args_no_ret("John")
             self.assertIsInstance(ret, TimeoutError)
             DummyServerCommunicator.close_connection()
+            DummyServerCommunicator.remote_functions.dummy_args_no_ret("John")
 
 
 class _DummyServerFunctions(ServerFunctions):
     from networking_example.example_dummy_functions import dummy_no_arg_no_ret, dummy_args_no_ret
-    #def dummy_no_arg_no_ret(self) -> bool: ...
+    # def dummy_no_arg_no_ret(self) -> bool: ...
     pass
 
 
