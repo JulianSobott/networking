@@ -44,8 +44,8 @@ class ClientManager(threading.Thread):
                 logger.info("New client connected: (%s)", str(addr))
                 client_id = self._produce_next_client_id()
                 client_communicator_id = to_server_id(client_id)
-                client = ClientCommunicator(client_communicator_id, self._address, connection,
-                                            self.remove_disconnected_client)
+                client = self._client_communicator(client_communicator_id, self._address, connection,
+                                                   self.remove_disconnected_client)
                 self.clients[client_communicator_id] = client
             except OSError:
                 if self._is_on:

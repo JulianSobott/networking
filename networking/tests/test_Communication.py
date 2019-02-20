@@ -119,29 +119,33 @@ class TestConnecting(CommunicationTestCase):
 class TestCommunicating(CommunicationTestCase):
 
     def test_send_function_add(self):
+        called[0] = False
         with ClientManager(dummy_address, DummyClientCommunicator) as listener:
             DummyServerCommunicator.connect(dummy_address)
-            self.assertEqual(called, False)
+            self.assertEqual(called, [False])
             packet_sent = FunctionPacket("not", 10, name="John")
             DummyServerCommunicator.communicator.send_packet(packet_sent)
-            wait_till_condition(lambda: len(listener.clients[0].communicator._packets) == 1, timeout=2)
-            packet_recv = listener.clients[0].communicator._packets[0]
+            wait_till_condition(lambda: len(listener.clients[to_server_id(0)].communicator._packets) == 1, timeout=2)
+            packet_recv = listener.clients[to_server_id(0)].communicator._packets[0]
             self.assertEqual(packet_recv, packet_sent)
 
     def test_send_function_execute_return(self):
-        self.assertEqual(called, False)
-        with ClientManager(dummy_address, DummyClientCommunicator):
+        self.assertEqual(called, [False])
+        with ClientManager(dummy_address, DummyClientCommunicator) as listener:
             DummyServerCommunicator.connect(dummy_address)
             ret_value = None
+            logger.debug(listener.clients[to_server_id(0)].local_functions)
+            logger.debug(DummyClientCommunicator.local_functions)
             try:
                 ret_value = DummyServerCommunicator.remote_functions(timeout=2).dummy_no_arg_no_ret()
             except TimeoutError:
                 pass
             self.assertEqual(ret_value, None)
-            self.assertEqual(called, True)
+
+            self.assertEqual(called, [True])
 
     def test_functions_no_connection(self):
-        self.assertRaises(ConnectionError, DummyServerCommunicator.remote_functions(timeout=1).dummy_no_arg_no_ret)
+        self.assertRaises(ConnectionError, DummyServerCommunicator.remote_functions(timeout=0).dummy_no_arg_no_ret)
 
     def test_functions_timeout(self):
         # May fail if packets are handled at server is implemented
@@ -153,34 +157,33 @@ class TestCommunicating(CommunicationTestCase):
         with ClientManager(dummy_address, DummyClientCommunicator):
             DummyServerCommunicator.connect(dummy_address)
 
-            DummyServerCommunicator.remote_functions(timeout=0).dummy_args_no_ret("Bunny")
-            #DummyServerCommunicator.remote_functions(timeout=0).dummy_args_no_ret("Bunny")
-            DummyServerCommunicator.remote_functions.dummy_args_no_ret("Bunny")
+            ret_value = DummyServerCommunicator.remote_functions(timeout=2).dummy_args_ret("Bunny")
+            self.assertEqual((10, 10), ret_value)
 
 
 class _DummyServerFunctions(ServerFunctions):
-    from networking_example.example_dummy_functions import dummy_no_arg_no_ret, dummy_args_no_ret
+    from networking_example.example_dummy_functions import dummy_no_arg_no_ret, dummy_args_ret
     # def dummy_no_arg_no_ret(self) -> bool: ...
     pass
 
 
 class _DummyClientFunctions(ClientFunctions):
-    from networking_example.example_dummy_functions import dummy_args_no_ret
+    from networking_example.example_dummy_functions import dummy_args_ret
 
 
 class DummyServerCommunicator(ServerCommunicator):
     remote_functions = _DummyServerFunctions
-    _local_functions = _DummyClientFunctions
+    local_functions = _DummyClientFunctions
 
 
 class DummyMultiServerCommunicator(MultiServerCommunicator):
     remote_functions = _DummyServerFunctions
-    _local_functions = _DummyClientFunctions
+    local_functions = _DummyClientFunctions
 
 
 class DummyClientCommunicator(ClientCommunicator):
     remote_functions = _DummyClientFunctions
-    _local_functions = _DummyServerFunctions
+    local_functions = _DummyServerFunctions
 
 
 if __name__ == '__main__':

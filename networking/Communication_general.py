@@ -155,6 +155,7 @@ class Communicator(threading.Thread):
                                  f"Got instead: {actual_outer_id}")
                     # TODO: handle (if possible)
                 else:
+                    IDManager(self._id).update_ids_by_packet(next_packet)
                     if isinstance(next_packet, FunctionPacket):
                         # execute and keep waiting for data
                         self._received_function_packet(next_packet)
@@ -172,6 +173,7 @@ class Communicator(threading.Thread):
                 raise TimeoutError("wait_for_response waited too long")
 
     def _received_function_packet(self, packet: FunctionPacket) -> None:
+        IDManager(self._id).update_ids_by_packet(packet)
         func = packet.function_name
         args = packet.args
         kwargs = packet.kwargs
@@ -238,7 +240,7 @@ class MetaFunctionCommunicator(type):
         try:
             timeout = kwargs["timeout"]
             connector: Connector = cls.__getattr__("_connector")
-            if connector is not None:
+            if connector.communicator is not None:
                 connector.communicator.wait_for_response_timeout = timeout
         except KeyError:
             pass
@@ -258,7 +260,7 @@ class MetaFunctionCommunicator(type):
             # send function packet
             connector: Connector = self.__getattr__("_connector")
             function_packet = FunctionPacket(function_name, *args, **kwargs)
-            if connector is None:
+            if connector.communicator is None:
                 raise ConnectionError("communicator in connector is None! Connect first to a server.")
             sent_packet = connector.communicator.send_packet(function_packet)
             if not sent_packet:
@@ -306,7 +308,7 @@ class MetaSingletonConnector(type):
 
 class Connector:
     remote_functions: Optional[Type['Functions']] = None
-    _local_functions: Optional[Type['Functions']] = None
+    local_functions: Optional[Type['Functions']] = None
 
     communicator: Optional[Communicator] = None
     id_ = to_client_id(0)
@@ -315,7 +317,7 @@ class Connector:
     def connect(connector: Union['Connector', Type['SingleConnector']], addr: SocketAddress, blocking=True,
                 time_out=float("inf")) -> bool:
         if connector.communicator is None:
-            connector.communicator = Communicator(addr, id_=connector.id_, local_functions=connector._local_functions)
+            connector.communicator = Communicator(addr, id_=connector.id_, local_functions=connector.local_functions)
             connector.remote_functions.__setattr__(connector.remote_functions, "_connector", connector)
             connector.communicator.start()
             if blocking:
@@ -348,10 +350,6 @@ class Connector:
         if connector.communicator is None:
             return False
         return connector.communicator.is_connected()
-
-    @property
-    def local_functions(self):
-        return self._local_functions
 
 
 class MultiConnector(Connector, metaclass=MetaSingletonConnector):
