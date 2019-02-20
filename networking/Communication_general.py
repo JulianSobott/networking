@@ -210,6 +210,7 @@ class PacketBuilder:
         if self.current_header and self.byte_stream.remaining_length >= self.current_header.specific_data_size:
             packet = Packet.from_bytes(self.current_header, self.byte_stream)
             self.byte_stream.remove_consumed_bytes()
+            self.current_header = None
             return packet
         return None
 
