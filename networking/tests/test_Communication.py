@@ -1,6 +1,5 @@
 import unittest
-import time
-import threading
+import sys
 
 from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
 
@@ -9,7 +8,6 @@ from Communication_server import ClientManager, ClientFunctions, ClientCommunica
 from Communication_general import Communicator, Connector, to_server_id
 from Packets import FunctionPacket
 from Logging import logger
-from networking_example.example_dummy_functions import called
 
 dummy_address = ("127.0.0.1", 5000)
 
@@ -22,6 +20,26 @@ class CommunicationTestCase(unittest.TestCase):
     def setUp(self):
         DummyMultiServerCommunicator.close_all_connections()
         DummyServerCommunicator.close_connection()
+
+
+class StdOutEqualizer:
+
+    def __init__(self, test_case, expected):
+        self.test_case: CommunicationTestCase = test_case
+        self.expected = expected
+        self.original = sys.stdout
+        self.file_path = "std_out.txt"
+
+    def __enter__(self):
+        self.original = sys.stdout
+        sys.stdout = open(self.file_path, "w")
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self.original
+        with open(self.file_path, "r") as std_out:
+            self.test_case.assertEqual(self.expected, std_out.read().strip())
 
 
 class TestConnecting(CommunicationTestCase):
@@ -119,10 +137,8 @@ class TestConnecting(CommunicationTestCase):
 class TestCommunicating(CommunicationTestCase):
 
     def test_send_function_add(self):
-        called[0] = False
         with ClientManager(dummy_address, DummyClientCommunicator) as listener:
             DummyServerCommunicator.connect(dummy_address)
-            self.assertEqual(called, [False])
             packet_sent = FunctionPacket("not", 10, name="John")
             DummyServerCommunicator.communicator.send_packet(packet_sent)
             wait_till_condition(lambda: len(listener.clients[to_server_id(0)].communicator._packets) == 1, timeout=2)
@@ -130,19 +146,17 @@ class TestCommunicating(CommunicationTestCase):
             self.assertEqual(packet_recv, packet_sent)
 
     def test_send_function_execute_return(self):
-        self.assertEqual(called, [False])
         with ClientManager(dummy_address, DummyClientCommunicator) as listener:
             DummyServerCommunicator.connect(dummy_address)
             ret_value = None
             logger.debug(listener.clients[to_server_id(0)].local_functions)
             logger.debug(DummyClientCommunicator.local_functions)
             try:
-                ret_value = DummyServerCommunicator.remote_functions(timeout=2).dummy_no_arg_no_ret()
+                with StdOutEqualizer(self, "Dummy function called"):
+                    ret_value = DummyServerCommunicator.remote_functions(timeout=2).dummy_no_arg_no_ret()
             except TimeoutError:
                 pass
             self.assertEqual(ret_value, None)
-
-            self.assertEqual(called, [True])
 
     def test_functions_no_connection(self):
         self.assertRaises(ConnectionError, DummyServerCommunicator.remote_functions(timeout=0).dummy_no_arg_no_ret)
