@@ -6,6 +6,7 @@
 @external_use:
 
 @internal_use:
+@Features: Better raise of excpetion : add file and linenumber, when packet return
 """
 import threading
 import socket
@@ -152,8 +153,7 @@ class Communicator(threading.Thread):
             self._exit.wait(self._time_till_next_check)
             waited += self._time_till_next_check
             if waited > self.wait_for_response_timeout >= 0:
-                logger.warning("Connection timeout")
-                return DataPacket(**{"return": TimeoutError()})
+                raise TimeoutError("wait_for_response waited too long")
 
     def received_function_packet(self, packet: FunctionPacket) -> None:
         func = packet.function_name
@@ -236,7 +236,7 @@ class MetaFunctionCommunicator(type):
         if item == "__call__":
             return type.__call__
 
-        def container(*args, **kwargs):
+        def container(*args, **kwargs) -> Any:
             function_name = item
             # send function packet
             connector: Connector = self.__getattr__("_connector")
@@ -247,9 +247,16 @@ class MetaFunctionCommunicator(type):
             if not sent_packet:
                 raise ConnectionError("Could not send function to server. Check connection to server..")
 
-            data_packet = connector.communicator.wait_for_response()
+            try:
+                data_packet = connector.communicator.wait_for_response()
+            except TimeoutError as e:
+                raise e
             # unpack data packet
             return_values = data_packet.data["return"]
+            if isinstance(return_values, Exception):
+                logger.exception(return_values)
+                # An exception was thrown at the other side!
+                raise return_values
             return return_values
 
         return container
@@ -260,6 +267,7 @@ class MetaFunctionCommunicator(type):
 
 
 class MetaSingletonConnector(type):
+
     _instances: Dict[int, 'Connector'] = {}
 
     def __call__(cls, *args, **kwargs) -> 'Connector':

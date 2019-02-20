@@ -140,9 +140,15 @@ class TestCommunicating(unittest.TestCase):
         self.assertEqual(called, False)
         with ClientManager(dummy_address) as listener:
             DummyServerCommunicator.connect(dummy_address)
-            ret_value = DummyServerCommunicator.remote_functions(timeout=2).dummy_no_arg_no_ret()
+            ret_value = None
+            try:
+                ret_value = DummyServerCommunicator.remote_functions(timeout=2).dummy_no_arg_no_ret()
+            except TimeoutError:
+                pass
             self.assertEqual(ret_value, None)
             self.assertEqual(called, True)
+
+            DummyServerCommunicator.close_connection()
 
     def test_functions_no_connection(self):
         self.assertRaises(ConnectionError, DummyServerCommunicator.remote_functions(timeout=1).dummy_no_arg_no_ret)
@@ -151,8 +157,17 @@ class TestCommunicating(unittest.TestCase):
         # May fail if packets are handled at server is implemented
         with ClientManager(dummy_address):
             DummyServerCommunicator.connect(dummy_address)
-            ret = DummyServerCommunicator.remote_functions(timeout=0).dummy_no_arg_no_ret()
-            self.assertIsInstance(ret, TimeoutError)
+            self.assertRaises(TimeoutError, DummyServerCommunicator.remote_functions(timeout=0).dummy_no_arg_no_ret)
+            DummyServerCommunicator.close_connection()
+
+    def test_function_args(self):
+        with ClientManager(dummy_address):
+            DummyServerCommunicator.connect(dummy_address)
+
+            DummyServerCommunicator.remote_functions(timeout=0).dummy_args_no_ret("Bunny")
+            #DummyServerCommunicator.remote_functions(timeout=0).dummy_args_no_ret("Bunny")
+            DummyServerCommunicator.remote_functions.dummy_args_no_ret("Bunny")
+
             DummyServerCommunicator.close_connection()
 
 
@@ -163,7 +178,7 @@ class _DummyServerFunctions(ServerFunctions):
 
 
 class _DummyClientFunctions(ClientFunctions):
-    pass
+    from networking_example.example_dummy_functions import dummy_args_no_ret
 
 
 class DummyServerCommunicator(ServerCommunicator):
