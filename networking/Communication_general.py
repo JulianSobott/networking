@@ -42,7 +42,7 @@ class Communicator(threading.Thread):
             self._connect()
         self._wait_for_new_input()
 
-    def _connect(self, seconds_till_next_try=10, timeout=-1) -> bool:
+    def _connect(self, seconds_till_next_try=2, timeout=-1) -> bool:
         waited = 0
         while self._is_on and not self._is_connected:
             try:
@@ -59,7 +59,7 @@ class Communicator(threading.Thread):
 
             self._exit.wait(seconds_till_next_try)
             waited += seconds_till_next_try
-            if waited > timeout > 0:
+            if waited > timeout >= 0:
                 logger.warning("Connection timeout")
                 return False
         return False
@@ -100,7 +100,7 @@ class Communicator(threading.Thread):
 
             logger.debug(f"finished _wait_for_new_input {self.getName()}")
 
-    def send_packet(self, packet: Packet):
+    def send_packet(self, packet: Packet) -> bool:
         # TODO: add type hinting when implementation is finished
         if not self._is_connected:
             self._connect(timeout=2)
@@ -116,11 +116,14 @@ class Communicator(threading.Thread):
                     self._is_connected = False
                 total_sent += sent
             self._is_connected = True
+            return total_sent == data_size
         except OSError:
             logger.error("Could not send packet: %s", str(packet))
+            return False
 
-    def wait_for_response(self, recv_function_function):
+    def wait_for_response(self, timeout=10):
         # TODO: add type hinting when implementation is finished
+        waited = 0.
         next_outer_id = IDManager(self._id).get_next_outer_id()
         while self._is_on:
             try:
@@ -135,7 +138,7 @@ class Communicator(threading.Thread):
                     # TODO: handle (if possible)
                 else:
                     if isinstance(next_packet, FunctionPacket):
-                        recv_function_function(next_packet)
+                        #recv_function_function(next_packet)
                         return
                     elif isinstance(next_packet, DataPacket):
                         return next_packet
@@ -145,6 +148,27 @@ class Communicator(threading.Thread):
             except IndexError:
                 pass  # List is empty -> wait
             self._exit.wait(self._time_till_next_check)
+            waited += self._time_till_next_check
+            if waited > timeout >= 0:
+                logger.warning("Connection timeout")
+                return DataPacket(**{"return": TimeoutError()})
+
+    def received_function_packet(self, packet: FunctionPacket) -> None:
+        try:
+            func = packet.function_name
+            args = packet.args
+            kwargs = packet.kwargs
+            try:
+                ret_value = func(*args, **kwargs)
+            except TypeError as e:
+                ret_value = e
+        except AttributeError as e:
+            ret_value = e
+        ret_kwargs = {"return": ret_value}
+        data_packet = DataPacket(**ret_kwargs)
+        # TODO:  handle if communicator is not assigned (None)
+        communicator: Optional[Communicator] = cls.__getattr__("communicator")
+        communicator.send_packet(data_packet)
 
     def stop(self, is_same_thread=False) -> None:
         """Calling from another thread"""
@@ -192,31 +216,49 @@ class PacketBuilder:
 
 class MetaFunctionCommunicator(type):
 
+    def __call__(self, *args, **kwargs):
+        try:
+            timeout = kwargs["timeout"]
+            Functions.__setattr__(Functions, "timeout", timeout)
+        except KeyError:
+            pass
+        return self
+
     def __getattribute__(self, item):
 
         if item == "__getattr__":
             return type.__getattribute__(self, item)
         if item == "__setattr__":
             return type.__setattr__
+        if item == "__call__":
+            return type.__call__
 
         def container(*args, **kwargs):
             function_name = item
+            timeout = self.__getattr__("timeout")
             # send function packet
-            self.__getattr__("_send_function")(function_name, *args, **kwargs)
+            sent_packet = self.__getattr__("_send_function")(function_name, *args, **kwargs)
             # recv data packet
-            data_packet = self.__getattr__("communicator").wait_for_response(self._recv_function)
+            if not sent_packet:
+                raise ConnectionError()
+
+            data_packet = self.__getattr__("communicator").wait_for_response(timeout=timeout)
             # unpack data packet
             return_values = data_packet.data["return"]
             return return_values
 
         return container
 
-    def _send_function(cls, function_name: str, *args, **kwargs):
+    def _send_function(cls, function_name: str, *args, **kwargs) -> bool:
         # TODO: add type hinting when implementation is finished
+        communicator: Optional[Communicator] = cls.__getattr__("communicator")
+        if communicator is None:
+            logger.error("No communicator connected. First connect to a server")
+            return False
         packet = FunctionPacket(function_name, *args, **kwargs)
-        cls.__getattr__("communicator").send_packet(packet)
+        return communicator.send_packet(packet)
 
-    def _recv_function(cls, function_name: str, args, kwargs):
+    def recv_function(cls, function_name: str, args, kwargs):
         # TODO: add type hinting when implementation is finished
         try:
             func = type.__getattribute__(cls, function_name)
@@ -229,7 +271,8 @@ class MetaFunctionCommunicator(type):
         ret_kwargs = {"return": ret_value}
         data_packet = DataPacket(**ret_kwargs)
         # TODO:  handle if communicator is not assigned (None)
-        Connector.communicator.send_packet(data_packet)
+        communicator: Optional[Communicator] = cls.__getattr__("communicator")
+        communicator.send_packet(data_packet)
 
     def __getattr__(self, item):
         func = type.__getattribute__(self, item)
@@ -340,3 +383,8 @@ class SingleConnector(Connector):
 
 class Functions(metaclass=MetaFunctionCommunicator):
     communicator: Optional[Communicator] = None
+    timeout = float("inf")
+
+    def __new__(cls, *args, **kwargs):
+        pass
+

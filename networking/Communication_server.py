@@ -12,7 +12,7 @@ import socket
 from typing import Dict
 
 from Logging import logger
-from Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress
+from Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress, Functions
 
 
 class ClientManager(threading.Thread):
@@ -88,5 +88,5 @@ class ClientCommunicator(Connector):
     pass
 
 
-class ClientFunctions(metaclass=MetaFunctionCommunicator):
+class ClientFunctions(Functions):
     pass

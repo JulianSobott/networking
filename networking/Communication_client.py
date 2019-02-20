@@ -10,7 +10,7 @@
 from typing import Optional
 
 from Logging import logger
-from Communication_general import SingleConnector, MultiConnector, MetaFunctionCommunicator, Communicator
+from Communication_general import SingleConnector, MultiConnector, Functions, Communicator
 
 
 class ServerCommunicator(SingleConnector):
@@ -21,6 +21,6 @@ class MultiServerCommunicator(MultiConnector):
     pass
 
 
-class ServerFunctions(metaclass=MetaFunctionCommunicator):
+class ServerFunctions(Functions):
     communicator: Optional[Communicator] = None
 

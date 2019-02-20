@@ -28,7 +28,9 @@ class TestConnecting(unittest.TestCase):
     @clean_start
     def test_single_client_connect(self):
         DummyServerCommunicator.connect(dummy_address, time_out=1)
+
         self.assertIsInstance(DummyServerCommunicator.functions.__getattr__("communicator"), Communicator)
+        self.assertIsInstance(DummyServerCommunicator.functions().__getattr__("communicator"), Communicator)
 
     @clean_start
     def test_multi_client_connect(self):
@@ -128,6 +130,26 @@ class TestCommunicating(unittest.TestCase):
             wait_till_condition(lambda: len(listener.clients[0]._packets) == 1, timeout=2)
             packet_recv = listener.clients[0]._packets[0]
             self.assertEqual(packet_recv, packet_sent)
+            DummyServerCommunicator.close_connection()
+
+    def test_send_function_execute_return(self):
+        self.assertEqual(called, False)
+        with ClientManager(dummy_address) as listener:
+            DummyServerCommunicator.connect(dummy_address)
+            ret_value = DummyServerCommunicator.functions(timeout=2).dummy_no_arg_no_ret()
+            self.assertEqual(ret_value, None)
+            self.assertEqual(called, True)
+
+    def test_functions_no_connection(self):
+        self.assertRaises(ConnectionError, DummyServerCommunicator.functions(timeout=1).dummy_no_arg_no_ret)
+
+    def test_functions_timeout(self):
+        # May fail if packets are handled at server is implemented
+        with ClientManager(dummy_address):
+            DummyServerCommunicator.connect(dummy_address)
+            ret = DummyServerCommunicator.functions(timeout=0).dummy_no_arg_no_ret()
+            self.assertIsInstance(ret, TimeoutError)
+            DummyServerCommunicator.close_connection()
 
 
 class DummyServerCommunicator(ServerCommunicator):
