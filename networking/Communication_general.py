@@ -220,7 +220,8 @@ class MetaFunctionCommunicator(type):
         try:
             timeout = kwargs["timeout"]
             connector: Connector = cls.__getattr__("_connector")
-            connector.communicator.wait_for_response_timeout = timeout
+            if connector is not None:
+                connector.communicator.wait_for_response_timeout = timeout
         except KeyError:
             pass
         return cls
@@ -239,9 +240,11 @@ class MetaFunctionCommunicator(type):
             # send function packet
             connector: Connector = self.__getattr__("_connector")
             function_packet = FunctionPacket(function_name, *args, **kwargs)
+            if connector is None:
+                raise ConnectionError("communicator in connector is None! Connect first to a server.")
             sent_packet = connector.communicator.send_packet(function_packet)
             if not sent_packet:
-                raise ConnectionError()
+                raise ConnectionError("Could not send function to server. Check connection to server..")
 
             data_packet = connector.communicator.wait_for_response()
             # unpack data packet

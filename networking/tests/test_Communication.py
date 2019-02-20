@@ -151,10 +151,9 @@ class TestCommunicating(unittest.TestCase):
         # May fail if packets are handled at server is implemented
         with ClientManager(dummy_address):
             DummyServerCommunicator.connect(dummy_address)
-            ret = DummyServerCommunicator.remote_functions(timeout=0).dummy_args_no_ret("John")
+            ret = DummyServerCommunicator.remote_functions(timeout=0).dummy_no_arg_no_ret()
             self.assertIsInstance(ret, TimeoutError)
             DummyServerCommunicator.close_connection()
-            DummyServerCommunicator.remote_functions.dummy_args_no_ret("John")
 
 
 class _DummyServerFunctions(ServerFunctions):
