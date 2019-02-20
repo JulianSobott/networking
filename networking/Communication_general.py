@@ -21,10 +21,22 @@ from Data import ByteStream
 SocketAddress = Tuple[str, int]
 
 
+CLIENT_ID_END = 0
+SERVER_ID_END = 30
+
+
+def to_client_id(id_):
+    return int(id_ + CLIENT_ID_END)
+
+
+def to_server_id(id_):
+    return int(id_ + SERVER_ID_END)
+
+
 class Communicator(threading.Thread):
     CHUNK_SIZE = 1024
 
-    def __init__(self, address: SocketAddress, id_=0, socket_connection=socket.socket(), from_accept=False,
+    def __init__(self, address: SocketAddress, id_, socket_connection=socket.socket(), from_accept=False,
                  on_close: Optional[Callable[['Communicator'], Any]] = None, local_functions=Type['Functions']) -> None:
         super().__init__(name=f"{'Client' if from_accept else 'Server'}_Communicator_thread_{id_}")
         self._socket_connection = socket_connection
@@ -38,6 +50,7 @@ class Communicator(threading.Thread):
         self._time_till_next_check = 0.3
         self._on_close = on_close
         self._functions: Type['Functions'] = local_functions
+        self._auto_execute_functions = from_accept
         self.wait_for_response_timeout = float("inf")
 
     def run(self) -> None:
@@ -86,6 +99,8 @@ class Communicator(threading.Thread):
                         possible_packet = packet_builder.add_chunk(chunk_data)
                         if possible_packet is not None:
                             self._packets.append(possible_packet)
+                            if self._auto_execute_functions and isinstance(possible_packet, FunctionPacket):
+                                self._received_function_packet(possible_packet)
 
                 except ConnectionResetError:
                     logger.warning("Connection reset, (%s)", str(self._address))
@@ -127,22 +142,23 @@ class Communicator(threading.Thread):
     def wait_for_response(self):
         # TODO: add type hinting when implementation is finished
         waited = 0.
-        next_outer_id = IDManager(self._id).get_next_outer_id()
+        next_global_id = IDManager(self._id).get_next_outer_id()
         while self._is_on:
             try:
                 next_packet = self._packets.pop(0)
-                actual_outer_id = next_packet.header.id_container.outer_id
-                if actual_outer_id > next_outer_id:
-                    logger.error(f"Packet lost! Expected outer_id: {next_outer_id}. Got instead: {actual_outer_id}")
+                actual_outer_id = next_packet.header.id_container.global_id
+                if actual_outer_id > next_global_id:
+                    logger.error(f"Packet lost! Expected outer_id: {next_global_id}. Got instead: {actual_outer_id}")
                     # TODO: handle
-                elif actual_outer_id < next_outer_id:
-                    logger.error(f"Unhandled Packet! Expected outer_id: {next_outer_id}. "
+                elif actual_outer_id < next_global_id:
+                    logger.error(f"Unhandled Packet! Expected outer_id: {next_global_id}. "
                                  f"Got instead: {actual_outer_id}")
                     # TODO: handle (if possible)
                 else:
                     if isinstance(next_packet, FunctionPacket):
-                        self.received_function_packet(next_packet)
-                        return
+                        # execute and keep waiting for data
+                        self._received_function_packet(next_packet)
+                        next_global_id = IDManager(self._id).get_next_outer_id()
                     elif isinstance(next_packet, DataPacket):
                         return next_packet
                     else:
@@ -155,7 +171,7 @@ class Communicator(threading.Thread):
             if waited > self.wait_for_response_timeout >= 0:
                 raise TimeoutError("wait_for_response waited too long")
 
-    def received_function_packet(self, packet: FunctionPacket) -> None:
+    def _received_function_packet(self, packet: FunctionPacket) -> None:
         func = packet.function_name
         args = packet.args
         kwargs = packet.kwargs
@@ -172,6 +188,7 @@ class Communicator(threading.Thread):
 
     def stop(self, is_same_thread=False) -> None:
         """Calling from another thread"""
+        logger.info(f"Stopping communicator: {self._id}")
         self._is_on = False
         self._exit.set()
         try:
@@ -273,7 +290,7 @@ class MetaSingletonConnector(type):
     def __call__(cls, *args, **kwargs) -> 'Connector':
         id_: int = args[0]
         if id_ not in cls._instances:
-            cls._instances[id_] = super(MetaSingletonConnector, cls).__call__(id_)
+            cls._instances[id_] = super(MetaSingletonConnector, cls).__call__(*args, **kwargs)
         return cls._instances[id_]
 
     @classmethod
@@ -292,13 +309,13 @@ class Connector:
     _local_functions: Optional[Type['Functions']] = None
 
     communicator: Optional[Communicator] = None
-    id = 0
+    id_ = to_client_id(0)
 
     @staticmethod
     def connect(connector: Union['Connector', Type['SingleConnector']], addr: SocketAddress, blocking=True,
                 time_out=float("inf")) -> bool:
         if connector.communicator is None:
-            connector.communicator = Communicator(addr, id_=connector.id, local_functions=connector._local_functions)
+            connector.communicator = Communicator(addr, id_=connector.id_, local_functions=connector._local_functions)
             connector.remote_functions.__setattr__(connector.remote_functions, "_connector", connector)
             connector.communicator.start()
             if blocking:
@@ -332,11 +349,15 @@ class Connector:
             return False
         return connector.communicator.is_connected()
 
+    @property
+    def local_functions(self):
+        return self._local_functions
+
 
 class MultiConnector(Connector, metaclass=MetaSingletonConnector):
 
     def __init__(self, id_: int) -> None:
-        self.id = id_
+        self.id_ = id_
         self.communicator: Optional[Communicator] = None
 
     def connect(self: Connector, addr: SocketAddress, blocking=True, time_out=float("inf")) -> bool:
@@ -376,4 +397,3 @@ class Functions(metaclass=MetaFunctionCommunicator):
 
     def __new__(cls, *args, **kwargs):
         pass
-
