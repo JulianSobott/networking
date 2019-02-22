@@ -19,6 +19,11 @@ from Logging import logger
 
 class TestIDManager(TestCase):
 
+    def doCleanups(self):
+        remove_manager(0)
+        remove_manager(1)
+        remove_manager(2)
+
     def test_multiple_same_managers(self):
         manager1_0 = IDManager(1)
         manager1_1 = IDManager(1)
