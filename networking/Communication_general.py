@@ -147,8 +147,8 @@ class Communicator(threading.Thread):
     def wait_for_response(self):
         # TODO: add type hinting when implementation is finished
         waited = 0.
-        next_global_id = IDManager(self._id).get_next_outer_id()
         while self._is_on:
+            next_global_id = IDManager(self._id).get_next_outer_id()
             try:
                 next_packet = self._packets.pop(0)
                 actual_outer_id = next_packet.header.id_container.global_id

@@ -11,11 +11,11 @@ import networking as net
 
 
 class ServerFunctions(net.ServerFunctions):
-    from Server import greet_client
+    from Server import greet_client, server_faculty
 
 
 class ClientFunctions(net.ClientFunctions):
-    from Client import client_func
+    from Client import client_func, client_faculty
 
 
 class ServerCommunicator(net.ServerCommunicator):

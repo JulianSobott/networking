@@ -22,3 +22,9 @@ def greet_client(name: str):
     return "Goodbye"
 
 
+def server_faculty(number: int) -> int:
+    if number <= 1:
+        return number
+    return number * net.ClientPool.get().remote_functions.client_faculty(number - 1)
+
+
