@@ -15,7 +15,7 @@ class ServerFunctions(net.ServerFunctions):
 
 
 class ClientFunctions(net.ClientFunctions):
-    from Client import client_func, client_faculty
+    from Client import client_faculty, client_func
 
 
 class ServerCommunicator(net.ServerCommunicator):
