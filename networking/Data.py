@@ -21,6 +21,8 @@ Data Types that can be packed (and their limitations):
 @TODO_:
 
 """
+import pickle
+
 from typing import Tuple, Any
 from utils import Ddict, load_dict_from_json, dump_dict_to_json
 from Logging import logger
@@ -42,6 +44,27 @@ types = Ddict({
     bool:   0x008,
     type(None):   0x009,
 })
+
+
+def general_pack(*args) -> bytes:
+    try:
+        specific_byte_string = b"0"
+        specific_byte_string += _pack(*args)
+    except Exception:
+        specific_byte_string = b"1"
+        specific_byte_string += pickle.dumps(*args)
+    return specific_byte_string
+
+
+def general_unpack(byte_stream: 'ByteStream') -> tuple:
+        uses_pickle = byte_stream.next_bytes(1)
+        if str(uses_pickle, ENCODING) == "1":
+            bytes_string = byte_stream.next_bytes(byte_stream.remaining_length)
+            data = (pickle.loads(bytes_string),)
+        else:
+            all_data = _unpack(byte_stream)
+            data = all_data
+        return data
 
 
 def _pack(*args) -> bytes:

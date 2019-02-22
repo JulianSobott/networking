@@ -9,13 +9,15 @@
 """
 from unittest import TestCase
 
-from networking.Data import _pack, _unpack, ByteStream
+from networking.Data import general_pack, general_unpack, ByteStream
+
+from networking.tests.example_functions import DummyPerson
 
 
 def single_value(test_self, value):
-    byte_string = _pack(value)
+    byte_string = general_pack(value)
     byte_stream = ByteStream(byte_string)
-    new_value = _unpack(byte_stream)[0]
+    new_value = general_unpack(byte_stream)[0]
     test_self.assertEqual(value, new_value)
 
 
@@ -56,4 +58,9 @@ class TestPacking(TestCase):
 
     def test_None(self):
         single_value(self, None)
+
+    def test_object(self):
+        single_value(self, DummyPerson("John", 90))
+
+
 
