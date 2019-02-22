@@ -20,7 +20,6 @@ from Data import ByteStream
 
 SocketAddress = Tuple[str, int]
 
-
 CLIENT_ID_END = 0
 SERVER_ID_END = 30
 
@@ -269,7 +268,9 @@ class MetaFunctionCommunicator(type):
             connector: Connector = self.__getattr__("_connector")
             function_packet = FunctionPacket(function_name, *args, **kwargs)
             if connector is None or connector.communicator is None:
-                raise ConnectionError("Communicator is not connected! Connect first to a server with connect(...)")
+                raise ConnectionError(
+                    "Communicator is not connected!"
+                    "Connect first to a server with `ServerCommunicator.connect(server_address)´")
             sent_packet = connector.communicator.send_packet(function_packet)
             if not sent_packet:
                 raise ConnectionError("Could not send function to server. Check connection to server..")
@@ -294,7 +295,6 @@ class MetaFunctionCommunicator(type):
 
 
 class MetaSingletonConnector(type):
-
     _instances: Dict[int, 'Connector'] = {}
 
     def __call__(cls, *args, **kwargs) -> 'Connector':

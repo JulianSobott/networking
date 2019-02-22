@@ -99,11 +99,12 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
             self._socket_connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._socket_connection.bind(self._address)
             logger.info(f"Server is now listening on: {self._address[0]}:{self._address[1]}")
-        except OSError:
+            self._socket_connection.listen(4)
+        except OSError as e:
             # [WinError 10038] socket closed before
+            logger.error(e)
             self._is_on = False
 
-        self._socket_connection.listen(4)
         while self._is_on:
             try:
                 (connection, addr) = self._socket_connection.accept()
