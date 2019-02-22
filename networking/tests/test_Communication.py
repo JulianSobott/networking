@@ -5,9 +5,10 @@ from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_til
 
 from Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
 from Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager
-from Communication_general import Communicator, Connector, to_server_id
-from Packets import FunctionPacket
+from Communication_general import to_server_id
 from Logging import logger
+
+from networking.tests.example_functions import DummyPerson
 
 dummy_address = ("127.0.0.1", 5000)
 
@@ -137,19 +138,7 @@ class TestConnecting(CommunicationTestCase):
 
 class TestCommunicating(CommunicationTestCase):
 
-    def test_send_function_execute_return(self):
-        with ClientManager(dummy_address, DummyClientCommunicator) as listener:
-            DummyServerCommunicator.connect(dummy_address)
-            ret_value = None
-            logger.debug(listener.clients[to_server_id(0)].local_functions)
-            logger.debug(DummyClientCommunicator.local_functions)
-            try:
-                with StdOutEqualizer(self, "Dummy function called"):
-                    ret_value = DummyServerCommunicator.remote_functions(timeout=2).dummy_no_arg_no_ret()
-            except TimeoutError:
-                pass
-            self.assertEqual(ret_value, None)
-
+    # Error cases
     def test_functions_no_connection(self):
         self.assertRaises(ConnectionError, DummyServerCommunicator.remote_functions(timeout=0).dummy_no_arg_no_ret)
 
@@ -159,21 +148,62 @@ class TestCommunicating(CommunicationTestCase):
             DummyServerCommunicator.connect(dummy_address)
             self.assertRaises(TimeoutError, DummyServerCommunicator.remote_functions(timeout=0).dummy_no_arg_no_ret)
 
-    def test_function_args(self):
+    # Succeed cases
+    def test_no_arg_no_ret(self):
         with ClientManager(dummy_address, DummyClientCommunicator):
             DummyServerCommunicator.connect(dummy_address)
+            try:
+                with StdOutEqualizer(self, "no_arg_no_ret() called"):
+                    self.assertEqual(DummyServerCommunicator.remote_functions(timeout=2).no_arg_no_ret(), None)
+            except TimeoutError:
+                self.fail("TimeoutError")
+
+    def test_no_arg_ret(self):
+        with ClientManager(dummy_address, DummyClientCommunicator):
+            DummyServerCommunicator.connect(dummy_address)
+            try:
+                with StdOutEqualizer(self, "no_arg_ret() called"):
+                    self.assertEqual(DummyServerCommunicator.remote_functions(timeout=2).no_arg_ret(), True)
+            except TimeoutError:
+                self.fail("TimeoutError")
+
+    def test_immutable_args_ret(self):
+        with ClientManager(dummy_address, DummyClientCommunicator):
+            DummyServerCommunicator.connect(dummy_address)
+            name = "Anne"
+            age = 78
+            children = ("Tom", "Pia")
+            try:
+                ret_value = DummyServerCommunicator.remote_functions(timeout=2).immutable_args_ret(name, age, children)
+                expected = f"{name} is {age} old and has {len(children)}: {children}"
+                self.assertEqual(expected, ret_value)
+            except TimeoutError:
+                self.fail("TimeoutError")
+
+    def test_args_ret_object(self):
+        with ClientManager(dummy_address, DummyClientCommunicator):
+            DummyServerCommunicator.connect(dummy_address)
+            name = "Anne"
+            age = 78
+            try:
+                ret_value = DummyServerCommunicator.remote_functions(timeout=2).args_ret_object(name, age)
+                self.assertEqual(DummyPerson(name, age), ret_value)
+            except TimeoutError:
+                self.fail("TimeoutError")
 
             ret_value = DummyServerCommunicator.remote_functions(timeout=2).dummy_args_ret("Bunny")
             self.assertEqual((10, 10), ret_value)
 
 
 class _DummyServerFunctions(ServerFunctions):
-    from networking.tests.example_functions import immutable_args_ret, no_arg_ret
+    from networking.tests.example_functions import no_arg_ret, no_arg_no_ret, immutable_args_ret, args_ret_object, \
+        class_args_ret
     # def dummy_no_arg_no_ret(self) -> bool: ...
 
 
 class _DummyClientFunctions(ClientFunctions):
-    from networking.tests.example_functions import immutable_args_ret, no_arg_ret
+    from networking.tests.example_functions import no_arg_no_ret, immutable_args_ret, no_arg_ret, args_ret_object, \
+        class_args_ret
 
 
 class DummyServerCommunicator(ServerCommunicator):
