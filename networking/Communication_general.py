@@ -273,7 +273,7 @@ class MetaFunctionCommunicator(type):
                     "Connect first to a server with `ServerCommunicator.connect(server_address)´")
             sent_packet = connector.communicator.send_packet(function_packet)
             if not sent_packet:
-                raise ConnectionError("Could not send function to server. Check connection to server..")
+                raise ConnectionError("Could not send function to server. Check connection to server.")
 
             try:
                 data_packet = connector.communicator.wait_for_response()
@@ -328,7 +328,8 @@ class Connector:
             connector.communicator = Communicator(addr, id_=connector._id, local_functions=connector.local_functions)
             connector.remote_functions.__setattr__(connector.remote_functions, "_connector", connector)
             connector.communicator.start()
-            if blocking:
+
+            def try_connect():
                 waited = 0.
                 wait_time = 0.01
                 while not connector.communicator.is_connected() and waited < time_out:
@@ -337,6 +338,11 @@ class Connector:
                 if waited >= time_out:
                     logger.warning("Stopped communicator due to timeout")
                     connector.communicator.stop()
+                    raise TimeoutError(f"Stopped trying to connect to server after {int(waited)} seconds")
+            if blocking:
+                try_connect()
+            else:
+                threading.Thread(target=try_connect, name=f"Connector_{connector._id}").start()
         assert isinstance(connector.communicator, Communicator)
         return connector.communicator.is_connected()
 

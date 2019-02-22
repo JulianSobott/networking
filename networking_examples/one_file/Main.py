@@ -44,7 +44,7 @@ class ServerCommunicator(net.ServerCommunicator):
 
 def main():
     with net.ClientManager(server_address, ClientCommunicator):
-        ServerCommunicator.connect(server_address)
+        ServerCommunicator.connect(server_address, blocking=True, time_out=2)
         ret = ServerCommunicator.remote_functions.say_hello("Doris")
         print(ret)
         ret = ServerCommunicator.remote_functions.greet_client()
