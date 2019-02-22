@@ -419,3 +419,7 @@ class FunctionExecutionThread(threading.Thread):
 
     def run(self):
         self._handle_packet(self._function_packet)
+
+    @property
+    def id(self):
+        return self._id

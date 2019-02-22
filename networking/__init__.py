@@ -11,4 +11,4 @@
 @TODO:
 """
 from Communication_client import ServerCommunicator, ServerFunctions, MultiServerCommunicator
-from Communication_server import ClientCommunicator, ClientFunctions, ClientManager, MetaClientManager
+from Communication_server import ClientCommunicator, ClientFunctions, ClientManager, MetaClientManager, ClientPool

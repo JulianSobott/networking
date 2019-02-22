@@ -31,6 +31,10 @@ def no_arg_ret() -> bool:
     return True
 
 
+def incrementer(number: int) -> int:
+    return number + 1
+
+
 def immutable_args_ret(name: str, age: int, children: tuple) -> str:
     return f"{name} is {age} old and has {len(children)}: {children}"
 
@@ -47,3 +51,8 @@ def class_args_ret(person: DummyPerson) -> tuple:
 
 def huge_args_huge_ret(*args):
     return args
+
+
+def func_in_func(start: int) -> bool:
+    ret = net.ClientPool.get().remote_functions.incrementer(start)
+    return ret + 1
