@@ -4,3 +4,5 @@ website/
 TEMP_FILES/
 .idea/
 *.pyc
+
+networking/tests/std_out.txt

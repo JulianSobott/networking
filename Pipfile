@@ -4,10 +4,10 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-unittest = "*"
+nose2 = "*"
 
 [packages]
-unittest = "*"
+thread-testing = {index = "https://test.pypi.org/simple/",version = "*"}
 
 [requires]
 python_version = "3.7"
