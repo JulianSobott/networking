@@ -49,6 +49,13 @@ class MetaClientManager(type):
             logger.error(
                 "Captain we have a multithreading problem! Thread dependent function called from another thread")
 
+    @staticmethod
+    def tear_down():
+        while len(MetaClientManager._instances.values()) > 0:
+            client_manager: ClientManager = MetaClientManager._instances.popitem()[1]
+            client_manager.stop_listening()
+            client_manager.stop_connections()
+
 
 class ClientManager(threading.Thread, metaclass=MetaClientManager):
 
