@@ -38,12 +38,11 @@ from typing import Union, Dict, Any, Callable
 
 from utils import Ddict
 from Logging import logger
-from Data import IDContainer, pack_int_type, unpack_int_type, NUM_INT_BYTES, BYTEORDER, NUM_TYPE_BYTES, _unpack, _pack,\
-    ByteStream, pack_int, ENCODING
+from Data import IDContainer, pack_int_type, unpack_int_type, NUM_INT_BYTES, BYTEORDER, NUM_TYPE_BYTES, general_unpack, \
+    general_pack, ByteStream, pack_int, ENCODING
 
 
 class Header:
-
     LENGTH_BYTES = 19
 
     def __init__(self, id_container: IDContainer, packet_type: int, specific_data_size: int) -> None:
@@ -82,7 +81,8 @@ class Header:
                 self.specific_data_size == other.specific_data_size)
 
     def __repr__(self):
-        return f"Header({self.id_container.__repr__()}, {packets[self.packet_type].__name__}, {self.specific_data_size})\n\t"
+        return (f"Header({self.id_container.__repr__()}, "
+                f"{packets[self.packet_type].__name__}, {self.specific_data_size})\n\t")
 
 
 class Packet:
@@ -131,22 +131,12 @@ class DataPacket(Packet):
 
     @classmethod
     def from_bytes(cls, header: Header, byte_stream: ByteStream) -> 'DataPacket':
-        uses_pickle = byte_stream.next_bytes(1)
-        if str(uses_pickle, ENCODING) == "1":
-            bytes_string = byte_stream.next_bytes(header.specific_data_size - 1)
-            data = pickle.loads(bytes_string)
-        else:
-            all_data = _unpack(byte_stream)
-            data = all_data[0]
+        num_bytes = header.specific_data_size - 1
+        data = general_unpack(byte_stream, num_bytes)[0]
         return cls.__call__(**data)
 
     def pack(self) -> bytes:
-        try:
-            specific_byte_string = b"0"
-            specific_byte_string += _pack(self.data)
-        except Exception:
-            specific_byte_string = b"1"
-            specific_byte_string += pickle.dumps(self.data)
+        specific_byte_string = general_pack(self.data)
         return super()._pack_all(specific_byte_string)
 
     def __eq__(self, other):
@@ -178,15 +168,15 @@ class FunctionPacket(Packet):
 
     @classmethod
     def from_bytes(cls, header: Header, byte_stream: ByteStream) -> 'FunctionPacket':
-        all_data = _unpack(byte_stream)
+        num_bytes = header.specific_data_size - 1
+        all_data = general_unpack(byte_stream, num_bytes)
         function_name: str = all_data[0]
         args: tuple = all_data[1]
         kwargs: dict = all_data[2]
         return cls.__call__(function_name, *args, **kwargs)
 
     def pack(self) -> bytes:
-        specific_byte_string = b""
-        specific_byte_string += _pack(self.function_name, self.args, self.kwargs)
+        specific_byte_string = general_pack(self.function_name, self.args, self.kwargs)
         return super()._pack_all(specific_byte_string)
 
     def __eq__(self, other):
@@ -201,6 +191,6 @@ class FunctionPacket(Packet):
 
 
 packets = Ddict({
-    FunctionPacket:    0x101,
-    DataPacket:        0x103,
+    FunctionPacket: 0x101,
+    DataPacket: 0x103,
 })

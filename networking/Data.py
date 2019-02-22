@@ -52,15 +52,16 @@ def general_pack(*args) -> bytes:
         specific_byte_string += _pack(*args)
     except Exception:
         specific_byte_string = b"1"
-        specific_byte_string += pickle.dumps(*args)
+        specific_byte_string += pickle.dumps(args)
     return specific_byte_string
 
 
-def general_unpack(byte_stream: 'ByteStream') -> tuple:
+def general_unpack(byte_stream: 'ByteStream', num_bytes=None) -> tuple:
         uses_pickle = byte_stream.next_bytes(1)
         if str(uses_pickle, ENCODING) == "1":
-            bytes_string = byte_stream.next_bytes(byte_stream.remaining_length)
-            data = (pickle.loads(bytes_string),)
+            num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes
+            bytes_string = byte_stream.next_bytes(num_bytes)
+            data = pickle.loads(bytes_string)
         else:
             all_data = _unpack(byte_stream)
             data = all_data

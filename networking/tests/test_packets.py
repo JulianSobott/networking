@@ -14,6 +14,8 @@ from networking.Packets import Header, Packet, DataPacket, FunctionPacket
 from networking.Data import ByteStream
 from networking.Logging import logger
 
+from networking.tests.example_functions import DummyPerson
+
 
 class TestPackets(unittest.TestCase):
 
@@ -30,6 +32,10 @@ class TestPackets(unittest.TestCase):
         self.helper_packet_tests(packet)
 
         packet = FunctionPacket(example_function, "John", tup=("HE",))
+        self.helper_packet_tests(packet)
+
+    def test_function_packet_class_arg(self):
+        packet = FunctionPacket(example_function, DummyPerson("He", 12))
         self.helper_packet_tests(packet)
 
     def test_data_packet(self):
