@@ -12,11 +12,13 @@ from networking.Logging import logger
 import Interface
 
 
-def server_func():
-    #logger.debug(net.MetaClientManager._instances)
-    #logger.debug(net.MetaClientManager.get_proper_communicator())
+def greet_client(name: str):
+    print(f"Hello {name}")
     ret_value = net.MetaClientManager.get_proper_communicator().remote_functions.client_func("Paukl")
-    print(f"Server: {ret_value}")
+    if ret_value:
+        print("Cool you responded")
+    else:
+        print("Mhhh something went wrong ")
     return "Goodbye"
 
 

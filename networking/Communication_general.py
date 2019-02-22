@@ -102,7 +102,8 @@ class Communicator(threading.Thread):
                             logger.info(f"New Packet at ({self._id}): {possible_packet}")
                             if self._auto_execute_functions and isinstance(possible_packet, FunctionPacket):
                                 # TODO: Execute in separate thread to continue receiving packets
-                                self._handle_packet(possible_packet)
+                                func_thread = FunctionExecutionThread(self._id, possible_packet, self._handle_packet)
+                                func_thread.start()
                             else:
                                 self._packets.append(possible_packet)
 
@@ -405,3 +406,15 @@ class Functions(metaclass=MetaFunctionCommunicator):
 
     def __new__(cls, *args, **kwargs):
         pass
+
+
+class FunctionExecutionThread(threading.Thread):
+
+    def __init__(self, id_: int, function_packet: FunctionPacket, handle_packet: Callable) -> None:
+        super().__init__(name=f"FunctionExecutionThread_{id_}")
+        self._id = id_
+        self._function_packet = function_packet
+        self._handle_packet = handle_packet
+
+    def run(self):
+        self._handle_packet(self._function_packet)

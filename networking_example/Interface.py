@@ -11,7 +11,7 @@ import networking as net
 
 
 class ServerFunctions(net.ServerFunctions):
-    from Server import server_func
+    from Server import greet_client
 
 
 class ClientFunctions(net.ClientFunctions):
