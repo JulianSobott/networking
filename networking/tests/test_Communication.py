@@ -191,8 +191,17 @@ class TestCommunicating(CommunicationTestCase):
             except TimeoutError:
                 self.fail("TimeoutError")
 
-            ret_value = DummyServerCommunicator.remote_functions(timeout=2).dummy_args_ret("Bunny")
-            self.assertEqual((10, 10), ret_value)
+    def test_class_args_ret(self):
+        # Not working
+        with ClientManager(dummy_address, DummyClientCommunicator):
+            DummyServerCommunicator.connect(dummy_address)
+            name = "Anne"
+            age = 78
+            try:
+                ret_value = DummyServerCommunicator.remote_functions(timeout=2).class_args_ret(DummyPerson(name, age))
+                self.assertEqual((name, age), ret_value)
+            except TimeoutError:
+                self.fail("TimeoutError")
 
 
 class _DummyServerFunctions(ServerFunctions):
