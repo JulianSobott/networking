@@ -323,7 +323,7 @@ class Connector:
 
     @staticmethod
     def connect(connector: Union['Connector', Type['SingleConnector']], addr: SocketAddress, blocking=True,
-                time_out=float("inf")) -> bool:
+                timeout=float("inf")) -> bool:
         if connector.communicator is None:
             connector.communicator = Communicator(addr, id_=connector._id, local_functions=connector.local_functions)
             connector.remote_functions.__setattr__(connector.remote_functions, "_connector", connector)
@@ -332,13 +332,13 @@ class Connector:
             def try_connect():
                 waited = 0.
                 wait_time = 0.01
-                while not connector.communicator.is_connected() and waited < time_out:
+                while not connector.communicator.is_connected() and waited < timeout:
                     time.sleep(wait_time)
                     waited += wait_time
-                if waited >= time_out:
-                    logger.warning("Stopped communicator due to timeout")
+                if waited >= timeout:
+                    logger.warning(f"Stopped trying to connect to server after {int(waited)} seconds due to timeout")
                     connector.communicator.stop()
-                    raise TimeoutError(f"Stopped trying to connect to server after {int(waited)} seconds")
+                    # raise TimeoutError(f"Stopped trying to connect to server after {int(waited)} seconds")
             if blocking:
                 try_connect()
             else:
@@ -348,13 +348,13 @@ class Connector:
 
     @staticmethod
     def close_connection(connector: Union['Connector', Type['SingleConnector']], blocking=True,
-                         time_out=float("inf")) -> None:
+                         timeout=float("inf")) -> None:
         if connector.communicator is not None:
             connector.communicator.stop()
             if blocking:
                 waited = 0.
                 wait_time = 0.01
-                while connector.communicator.is_connected() and waited < time_out:
+                while connector.communicator.is_connected() and waited < timeout:
                     time.sleep(wait_time)
                     waited += wait_time
             connector.communicator: Optional[Communicator] = None
@@ -376,11 +376,11 @@ class MultiConnector(Connector, metaclass=MetaSingletonConnector):
         self._id = id_
         self.communicator: Optional[Communicator] = None
 
-    def connect(self: Connector, addr: SocketAddress, blocking=True, time_out=float("inf")) -> bool:
-        return super().connect(self, addr, blocking, time_out)
+    def connect(self: Connector, addr: SocketAddress, blocking=True, timeout=float("inf")) -> bool:
+        return super().connect(self, addr, blocking, timeout)
 
-    def close_connection(self: Connector, blocking=True, time_out=float("inf")) -> None:
-        return super().close_connection(self, blocking, time_out)
+    def close_connection(self: Connector, blocking=True, timeout=float("inf")) -> None:
+        return super().close_connection(self, blocking, timeout)
 
     @staticmethod
     def close_all_connections() -> None:
@@ -396,12 +396,12 @@ class SingleConnector(Connector):
     """Only static accessible. Therefore only a single connector (per address) per machine possible"""
 
     @classmethod
-    def connect(cls, addr: SocketAddress, blocking=True, time_out=float("inf")) -> bool:
-        return super().connect(cls, addr, blocking, time_out)
+    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf")) -> bool:
+        return super().connect(cls, addr, blocking, timeout)
 
     @classmethod
-    def close_connection(cls, blocking=True, time_out=float("inf")) -> None:
-        return super().close_connection(cls, blocking, time_out)
+    def close_connection(cls, blocking=True, timeout=float("inf")) -> None:
+        return super().close_connection(cls, blocking, timeout)
 
     @classmethod
     def is_connected(cls) -> bool:

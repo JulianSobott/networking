@@ -163,8 +163,8 @@ class ClientCommunicator(Connector, metaclass=ClientPool):
         self.communicator.start()
         self.remote_functions.__setattr__(self.remote_functions, "_connector", self)
 
-    def close_connection(self: Connector, blocking=True, time_out=float("inf")) -> None:
-        return super().close_connection(self, blocking, time_out)
+    def close_connection(self: Connector, blocking=True, timeout=float("inf")) -> None:
+        return super().close_connection(self, blocking, timeout)
 
     @property
     def id(self):

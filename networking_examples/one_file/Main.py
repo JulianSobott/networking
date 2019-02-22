@@ -20,7 +20,7 @@ def main():
     # open and start the server and close afterwards
     with net.ClientManager(server_address, ClientCommunicator):
         # Connect a client to the server
-        ServerCommunicator.connect(server_address, blocking=True, time_out=2)
+        ServerCommunicator.connect(server_address, blocking=True, timeout=2)
 
         # Call functions at the server and print the return values
         ret = ServerCommunicator.remote_functions.greet_client()

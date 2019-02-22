@@ -49,17 +49,16 @@ class StdOutEqualizer:
 class TestConnecting(CommunicationTestCase):
 
     def test_single_client_connect(self):
-        DummyServerCommunicator.connect(dummy_address, time_out=0)
-
+        DummyServerCommunicator.connect(dummy_address, timeout=0)
         self.assertEqual(DummyServerCommunicator.remote_functions.__getattr__("_connector"), DummyServerCommunicator)
         self.assertEqual(DummyServerCommunicator.remote_functions().__getattr__("_connector"), DummyServerCommunicator)
         self.assertEqual(DummyServerCommunicator.remote_functions, DummyServerCommunicator.remote_functions())
 
     def test_multi_client_connect(self):
-        DummyMultiServerCommunicator(0).connect(dummy_address, time_out=0)
+        DummyMultiServerCommunicator(0).connect(dummy_address, timeout=0)
         self.assertIsInstance(DummyMultiServerCommunicator(0).remote_functions.__getattr__("_connector"),
                               DummyMultiServerCommunicator)
-        DummyMultiServerCommunicator(1).connect(dummy_address, time_out=0)
+        DummyMultiServerCommunicator(1).connect(dummy_address, timeout=0)
         self.assertIsInstance(DummyMultiServerCommunicator(1).remote_functions.__getattr__("_connector"),
                               DummyMultiServerCommunicator)
 
@@ -113,7 +112,7 @@ class TestConnecting(CommunicationTestCase):
         self.assertEqual(get_num_non_dummy_threads(), 1)
 
     def test_offline_server(self):
-        connected = DummyServerCommunicator.connect(dummy_address, time_out=2)
+        connected = DummyServerCommunicator.connect(dummy_address, timeout=0)
         self.assertEqual(get_num_non_dummy_threads(), 1)
         self.assertEqual(connected, False)
 
