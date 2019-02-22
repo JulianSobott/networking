@@ -53,6 +53,15 @@ class ClientPool(type):
             "Previous checks didnt handle all cases"
         return ClientPool._instances[server_address][client_id]
 
+    @staticmethod
+    def tear_down():
+        while len(ClientPool._instances.values()) > 0:
+            addresses = ClientPool._instances.popitem()[1]
+            while len(addresses.values()) > 0:
+                client_communicator: ClientCommunicator = addresses.popitem()[1]
+                client_communicator.close_connection()
+                client_communicator.close_connection()
+
 
 class MetaClientManager(type):
     _instances: Dict[SocketAddress, 'ClientManager'] = {}
