@@ -137,15 +137,6 @@ class TestConnecting(CommunicationTestCase):
 
 class TestCommunicating(CommunicationTestCase):
 
-    def test_send_function_add(self):
-        with ClientManager(dummy_address, DummyClientCommunicator) as listener:
-            DummyServerCommunicator.connect(dummy_address)
-            packet_sent = FunctionPacket("not", 10, name="John")
-            DummyServerCommunicator.communicator.send_packet(packet_sent)
-            wait_till_condition(lambda: len(listener.clients[to_server_id(0)].communicator._packets) == 1, timeout=2)
-            packet_recv = listener.clients[to_server_id(0)].communicator._packets[0]
-            self.assertEqual(packet_recv, packet_sent)
-
     def test_send_function_execute_return(self):
         with ClientManager(dummy_address, DummyClientCommunicator) as listener:
             DummyServerCommunicator.connect(dummy_address)
