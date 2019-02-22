@@ -92,7 +92,7 @@ class Communicator(threading.Thread):
                 try:
                     chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
                     if chunk_data == b"":
-                        logger.warning("Connection reset, (%s)", str(self._address))
+                        logger.info("Connection reset, (%s)", str(self._address))
                         self._is_connected = False
                     else:
                         possible_packet = packet_builder.add_chunk(chunk_data)
