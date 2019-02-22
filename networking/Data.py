@@ -46,9 +46,6 @@ types = Ddict({
     type(None):   0x009,
 })
 
-KEY = Fernet.generate_key()
-FERNET = Fernet(KEY)
-
 
 def general_pack(*args) -> bytes:
     try:
@@ -57,13 +54,13 @@ def general_pack(*args) -> bytes:
     except Exception:
         specific_byte_string = b"1"
         specific_byte_string += pickle.dumps(args)
-    encrypted_byte_string = encrypt(specific_byte_string)
+    encrypted_byte_string = Cryptographer.encrypt(specific_byte_string)
     return encrypted_byte_string
 
 
 def general_unpack(byte_stream: 'ByteStream', num_bytes=None) -> tuple:
     num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes
-    byte_stream = decrypt(byte_stream, num_bytes)
+    byte_stream = Cryptographer.decrypt(byte_stream, num_bytes)
     num_bytes = byte_stream.remaining_length - 1
     uses_pickle = byte_stream.next_bytes(1)
     if str(uses_pickle, ENCODING) == "1":
@@ -271,10 +268,22 @@ def pack_int(num: int) -> bytes:
     return int.to_bytes(num, NUM_INT_BYTES, BYTEORDER, signed=True)
 
 
-def encrypt(byte_string: bytes) -> bytes:
-    return FERNET.encrypt(byte_string)
+class Cryptographer:
 
+    key = Fernet.generate_key()
+    f = Fernet(key)
 
-def decrypt(byte_stream: ByteStream, num_bytes) -> ByteStream:
-    byte_string = FERNET.decrypt(byte_stream.next_bytes(num_bytes))
-    return ByteStream(byte_string)
+    def __init__(self, key):
+        Cryptographer.key = key
+        Cryptographer.f = Fernet(key)
+
+    @staticmethod
+    def encrypt(byte_string: bytes) -> bytes:
+        assert Cryptographer.f is not None, "First init Cryptographer"
+        return Cryptographer.f.encrypt(byte_string)
+
+    @staticmethod
+    def decrypt(byte_stream: ByteStream, num_bytes) -> ByteStream:
+        assert Cryptographer.f is not None, "First init Cryptographer"
+        byte_string = Cryptographer.f.decrypt(byte_stream.next_bytes(num_bytes))
+        return ByteStream(byte_string)
