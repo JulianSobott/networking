@@ -8,7 +8,8 @@ from Communication_server import ClientManager, ClientFunctions, ClientCommunica
 from Communication_general import to_server_id
 from Logging import logger
 
-from networking.tests.example_functions import DummyPerson
+from networking.tests.example_functions import DummyPerson, DummyServerCommunicator, DummyClientCommunicator, \
+    DummyMultiServerCommunicator
 
 dummy_address = ("127.0.0.1", 5000)
 
@@ -208,31 +209,10 @@ class TestCommunicating(CommunicationTestCase):
                               (0,),
                               2)
 
-
-class _DummyServerFunctions(ServerFunctions):
-    from networking.tests.example_functions import no_arg_ret, no_arg_no_ret, immutable_args_ret, args_ret_object, \
-        class_args_ret, huge_args_huge_ret, func_in_func, incrementer
-    # def dummy_no_arg_no_ret(self) -> bool: ...
-
-
-class _DummyClientFunctions(ClientFunctions):
-    from networking.tests.example_functions import no_arg_no_ret, immutable_args_ret, no_arg_ret, args_ret_object, \
-        class_args_ret, huge_args_huge_ret, func_in_func, incrementer
-
-
-class DummyServerCommunicator(ServerCommunicator):
-    remote_functions = _DummyServerFunctions
-    local_functions = _DummyClientFunctions
-
-
-class DummyMultiServerCommunicator(MultiServerCommunicator):
-    remote_functions = _DummyServerFunctions
-    local_functions = _DummyClientFunctions
-
-
-class DummyClientCommunicator(ClientCommunicator):
-    remote_functions = _DummyClientFunctions
-    local_functions = _DummyServerFunctions
+    def test_many_func_in_func(self):
+        self.helper_test_func(DummyServerCommunicator.remote_functions(timeout=2).many_func_in_func,
+                              tuple(),
+                              120)
 
 
 if __name__ == '__main__':

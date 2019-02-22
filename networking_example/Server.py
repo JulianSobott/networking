@@ -14,7 +14,7 @@ import Interface
 
 def greet_client(name: str):
     print(f"Hello {name}")
-    ret_value = net.MetaClientManager.get_proper_communicator().remote_functions.client_func("Paukl")
+    ret_value = net.ClientPool.get().remote_functions.client_func("Paukl")
     if ret_value:
         print("Cool you responded")
     else:

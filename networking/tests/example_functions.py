@@ -8,7 +8,115 @@
 @internal_use:
 """
 import networking as net
+
 from Logging import logger
+
+
+class _DummyServerFunctions(net.ServerFunctions):
+    @staticmethod
+    def no_arg_no_ret() -> None:
+        return no_arg_no_ret()
+
+    @staticmethod
+    def no_arg_ret() -> bool:
+        return no_arg_ret()
+
+    @staticmethod
+    def incrementer(number: int) -> int:
+        return incrementer(number)
+
+    @staticmethod
+    def immutable_args_ret(name: str, age: int, children: tuple) -> str:
+        return immutable_args_ret(name, age, children)
+
+    @staticmethod
+    def args_ret_object(name, age) -> 'DummyPerson':
+        return args_ret_object(name, age)
+
+    @staticmethod
+    def class_args_ret(person: 'DummyPerson') -> tuple:
+        return class_args_ret(person)
+
+    @staticmethod
+    def huge_args_huge_ret(*args):
+        return huge_args_huge_ret(*args)
+
+    @staticmethod
+    def func_in_func(start: int) -> bool:
+        return func_in_func(start)
+
+    @staticmethod
+    def many_func_in_func():
+        return many_func_in_func()
+
+    @staticmethod
+    def server_faculty(number: int) -> int:
+        return server_faculty(number)
+
+    @staticmethod
+    def client_faculty(number: int) -> int:
+        return client_faculty(number)
+
+
+class _DummyClientFunctions(net.ServerFunctions):
+    @staticmethod
+    def no_arg_no_ret() -> None:
+        return no_arg_no_ret()
+
+    @staticmethod
+    def no_arg_ret() -> bool:
+        return no_arg_ret()
+
+    @staticmethod
+    def incrementer(number: int) -> int:
+        return incrementer(number)
+
+    @staticmethod
+    def immutable_args_ret(name: str, age: int, children: tuple) -> str:
+        return immutable_args_ret(name, age, children)
+
+    @staticmethod
+    def args_ret_object(name, age) -> 'DummyPerson':
+        return args_ret_object(name, age)
+
+    @staticmethod
+    def class_args_ret(person: 'DummyPerson') -> tuple:
+        return class_args_ret(person)
+
+    @staticmethod
+    def huge_args_huge_ret(*args):
+        return huge_args_huge_ret(*args)
+
+    @staticmethod
+    def func_in_func(start: int) -> bool:
+        return func_in_func(start)
+
+    @staticmethod
+    def many_func_in_func():
+        return many_func_in_func()
+
+    @staticmethod
+    def server_faculty(number: int) -> int:
+        return server_faculty(number)
+
+    @staticmethod
+    def client_faculty(number: int) -> int:
+        return client_faculty(number)
+
+
+class DummyServerCommunicator(net.ServerCommunicator):
+    remote_functions = _DummyServerFunctions
+    local_functions = _DummyClientFunctions
+
+
+class DummyMultiServerCommunicator(net.MultiServerCommunicator):
+    remote_functions = _DummyServerFunctions
+    local_functions = _DummyClientFunctions
+
+
+class DummyClientCommunicator(net.ClientCommunicator):
+    remote_functions = _DummyClientFunctions
+    local_functions = _DummyServerFunctions
 
 
 class DummyPerson:
@@ -56,3 +164,20 @@ def huge_args_huge_ret(*args):
 def func_in_func(start: int) -> bool:
     ret = net.ClientPool.get().remote_functions.incrementer(start)
     return ret + 1
+
+
+def many_func_in_func():
+    return net.ClientPool.get().remote_functions.client_faculty(5)
+
+
+def server_faculty(number: int) -> int:
+    if number <= 1:
+        return number
+    return number * net.ClientPool.get().remote_functions.client_faculty(number - 1)
+
+
+def client_faculty(number: int) -> int:
+    if number <= 1:
+        return number
+    return number * DummyServerCommunicator.remote_functions.server_faculty(number - 1)
+
