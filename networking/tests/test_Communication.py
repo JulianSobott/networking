@@ -193,6 +193,15 @@ class TestCommunicating(CommunicationTestCase):
                               (DummyPerson(name, age),),
                               (name, age))
 
+    def test_huge_args_huge_ret(self):
+        arg1 = "Text" * 1200
+        arg2 = DummyPerson("John", -9100)
+        arg3 = "End"
+        args = (arg1, arg2, arg3)
+        self.helper_test_func(DummyServerCommunicator.remote_functions(timeout=2).huge_args_huge_ret,
+                              args,
+                              args)
+
 
 class _DummyServerFunctions(ServerFunctions):
     from networking.tests.example_functions import no_arg_ret, no_arg_no_ret, immutable_args_ret, args_ret_object, \

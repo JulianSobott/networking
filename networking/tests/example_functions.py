@@ -43,3 +43,7 @@ def class_args_ret(person: DummyPerson) -> tuple:
     name = person.name
     age = person.age
     return name, age
+
+
+def huge_args_huge_ret(*args):
+    return args
