@@ -34,8 +34,8 @@ class IDManagers(type):
     def __call__(cls, *args, **kwargs):
         id_ = args[0]
         if id_ not in cls._instances:
-            cls._instances[id_] = super(IDManagers, cls).__call__(id_)
-        return cls._instances[id_]
+            IDManagers._instances[id_] = super(IDManagers, cls).__call__(id_)
+        return IDManagers._instances[id_]
 
     @staticmethod
     def remove(id_):
@@ -70,6 +70,7 @@ class IDManager(metaclass=IDManagers):
 
         packet.set_ids(func_id, outer_id)
         self._next_global_id += 1
+        #logger.debug(self.__repr__())
         return packet
 
     def update_ids_by_packet(self, packet: Packet) -> None:
@@ -100,6 +101,9 @@ class IDManager(metaclass=IDManagers):
 
     def get_function_stack(self) -> List[int]:
         return self._function_stack
+
+    def __repr__(self):
+        return f"IDManager_{self.id}({self._next_function_id, self._next_global_id})"
 
 
 def remove_manager(id_: int) -> None:

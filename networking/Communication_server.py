@@ -16,7 +16,41 @@ from Communication_general import Communicator, Connector, MetaFunctionCommunica
     MultiConnector, to_server_id
 
 
-class ClientManager(threading.Thread):
+class MetaClientManager(type):
+    _instances: Dict[int, 'ClientManager'] = {}
+    _last_instance: 'ClientManager'
+
+    def __call__(cls, *args, **kwargs) -> 'ClientManager':
+        address: int = args[0]
+        if address not in cls._instances:
+            MetaClientManager._instances[address] = super(MetaClientManager, cls).__call__(*args, **kwargs)
+            MetaClientManager._last_instance = cls._instances[address]
+        return MetaClientManager._instances[address]
+
+    @staticmethod
+    def get_proper_communicator(address=None):
+        current_thread = threading.current_thread()
+        try:
+            id_ = current_thread._id
+            try:
+                if address is None:
+                    manager = MetaClientManager._last_instance
+                else:
+                    try:
+                        manager = MetaClientManager._instances[address]
+                    except KeyError:
+                        logger.error(f"No ClientManager started with address: {address}")
+                        raise ConnectionError()
+                return manager.clients[id_]
+            except KeyError:
+                logger.error(
+                    f"Trying to access a client that was never connected! {manager.clients}: {id_}")
+        except AttributeError:
+            logger.error(
+                "Captain we have a multithreading problem! Thread dependent function called from another thread")
+
+
+class ClientManager(threading.Thread, metaclass=MetaClientManager):
 
     def __init__(self, address: SocketAddress, client_communicator: Type['ClientCommunicator']) -> None:
         super().__init__(name="ClientManager")
@@ -93,6 +127,7 @@ class ClientCommunicator(MultiConnector):
         self.communicator = Communicator(address, id_, connection, from_accept=True, on_close=on_close,
                                          local_functions=self.local_functions)
         self.communicator.start()
+        self.remote_functions.__setattr__(self.remote_functions, "_connector", self)
 
 
 class ClientFunctions(Functions):

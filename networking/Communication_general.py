@@ -92,15 +92,19 @@ class Communicator(threading.Thread):
                         self.stop(is_same_thread=True)
                 try:
                     chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
+                    logger.debug(chunk_data)
                     if chunk_data == b"":
                         logger.warning("Connection reset, (%s)", str(self._address))
                         self._is_connected = False
                     else:
                         possible_packet = packet_builder.add_chunk(chunk_data)
                         if possible_packet is not None:
-                            self._packets.append(possible_packet)
+                            logger.info(f"New Packet at ({self._id}): {possible_packet}")
                             if self._auto_execute_functions and isinstance(possible_packet, FunctionPacket):
-                                self._received_function_packet(possible_packet)
+                                # TODO: Execute in separate thread to continue receiving packets
+                                self._handle_packet(possible_packet)
+                            else:
+                                self._packets.append(possible_packet)
 
                 except ConnectionResetError:
                     logger.warning("Connection reset, (%s)", str(self._address))
@@ -146,6 +150,7 @@ class Communicator(threading.Thread):
         while self._is_on:
             try:
                 next_packet = self._packets.pop(0)
+                logger.debug(f"{self._id}: {str(IDManager(self._id))}")
                 actual_outer_id = next_packet.header.id_container.global_id
                 if actual_outer_id > next_global_id:
                     logger.error(f"Packet lost! Expected outer_id: {next_global_id}. Got instead: {actual_outer_id}")
@@ -155,12 +160,12 @@ class Communicator(threading.Thread):
                                  f"Got instead: {actual_outer_id}")
                     # TODO: handle (if possible)
                 else:
-                    IDManager(self._id).update_ids_by_packet(next_packet)
                     if isinstance(next_packet, FunctionPacket):
                         # execute and keep waiting for data
-                        self._received_function_packet(next_packet)
+                        self._handle_packet(next_packet)
                         next_global_id = IDManager(self._id).get_next_outer_id()
                     elif isinstance(next_packet, DataPacket):
+                        self._handle_packet(next_packet)
                         return next_packet
                     else:
                         logger.error(f"Received not implemented Packet class: {type(next_packet)}")
@@ -170,10 +175,15 @@ class Communicator(threading.Thread):
             self._exit.wait(self._time_till_next_check)
             waited += self._time_till_next_check
             if waited > self.wait_for_response_timeout >= 0:
+                logger.debug("wait_for_response waited too long")
                 raise TimeoutError("wait_for_response waited too long")
 
-    def _received_function_packet(self, packet: FunctionPacket) -> None:
+    def _handle_packet(self, packet):
         IDManager(self._id).update_ids_by_packet(packet)
+        if isinstance(packet, FunctionPacket):
+            self._received_function_packet(packet)
+
+    def _received_function_packet(self, packet: FunctionPacket) -> None:
         func = packet.function_name
         args = packet.args
         kwargs = packet.kwargs
