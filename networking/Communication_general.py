@@ -319,13 +319,13 @@ class Connector:
     local_functions: Optional[Type['Functions']] = None
 
     communicator: Optional[Communicator] = None
-    id_ = to_client_id(0)
+    _id = to_client_id(0)
 
     @staticmethod
     def connect(connector: Union['Connector', Type['SingleConnector']], addr: SocketAddress, blocking=True,
                 time_out=float("inf")) -> bool:
         if connector.communicator is None:
-            connector.communicator = Communicator(addr, id_=connector.id_, local_functions=connector.local_functions)
+            connector.communicator = Communicator(addr, id_=connector._id, local_functions=connector.local_functions)
             connector.remote_functions.__setattr__(connector.remote_functions, "_connector", connector)
             connector.communicator.start()
             if blocking:
@@ -359,11 +359,15 @@ class Connector:
             return False
         return connector.communicator.is_connected()
 
+    @property
+    def id(self):
+        return self._id
+
 
 class MultiConnector(Connector, metaclass=MetaSingletonConnector):
 
     def __init__(self, id_: int) -> None:
-        self.id_ = id_
+        self._id = id_
         self.communicator: Optional[Communicator] = None
 
     def connect(self: Connector, addr: SocketAddress, blocking=True, time_out=float("inf")) -> bool:

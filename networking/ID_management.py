@@ -59,7 +59,7 @@ class IDManager(metaclass=IDManagers):
 
     def set_ids_of_packet(self, packet: Packet) -> Optional[Packet]:
         """set ids of packet and adjust internal state"""
-        outer_id = self._next_global_id
+        global_id = self._next_global_id
         if isinstance(packet, FunctionPacket):
             func_id = self._is_function_packet()
         elif isinstance(packet, DataPacket):
@@ -68,9 +68,8 @@ class IDManager(metaclass=IDManagers):
             logger.error("Unknown packet_class (%s)", type(packet).__name__)
             return None
 
-        packet.set_ids(func_id, outer_id)
+        packet.set_ids(func_id, global_id)
         self._next_global_id += 1
-        #logger.debug(self.__repr__())
         return packet
 
     def update_ids_by_packet(self, packet: Packet) -> None:
