@@ -73,6 +73,7 @@ class TestConnecting(CommunicationTestCase):
                              DummyServerCommunicator.communicator._socket_connection.getsockname())
 
             DummyServerCommunicator.close_connection()
+            DummyServerCommunicator.close_connection()
             wait_till_joined(DummyServerCommunicator.communicator, timeout=1)
             wait_till_condition(lambda: len(listener.clients.values()) == 0, timeout=1)
             # wait_till_condition(lambda: get_num_non_dummy_threads() == 2)

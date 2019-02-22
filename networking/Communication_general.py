@@ -51,6 +51,7 @@ class Communicator(threading.Thread):
         self._on_close = on_close
         self._functions: Type['Functions'] = local_functions
         self._auto_execute_functions = from_accept
+        self._closed = False
         self.wait_for_response_timeout = float("inf")
 
     def run(self) -> None:
@@ -64,7 +65,7 @@ class Communicator(threading.Thread):
             try:
                 self._socket_connection = socket.create_connection(self._address)
                 self._is_connected = True
-                logger.debug(f"Successfully connected to: {str(self._address)}")
+                logger.info(f"Successfully connected to: {str(self._address)}")
                 return True
             except ConnectionRefusedError:
                 logger.warning("Could not connect to server with address: (%s)", str(self._address))
@@ -84,7 +85,6 @@ class Communicator(threading.Thread):
         packet_builder = PacketBuilder()
         with self._socket_connection:
             while self._is_on:
-                # logger.debug(f"{self.getName()} : {self._is_on}")
                 if self._is_on and not self._is_connected:
                     if self._keep_connection:
                         self._connect()
@@ -92,7 +92,6 @@ class Communicator(threading.Thread):
                         self.stop(is_same_thread=True)
                 try:
                     chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
-                    logger.debug(chunk_data)
                     if chunk_data == b"":
                         logger.warning("Connection reset, (%s)", str(self._address))
                         self._is_connected = False
@@ -101,27 +100,27 @@ class Communicator(threading.Thread):
                         if possible_packet is not None:
                             logger.info(f"New Packet at ({self._id}): {possible_packet}")
                             if self._auto_execute_functions and isinstance(possible_packet, FunctionPacket):
-                                # TODO: Execute in separate thread to continue receiving packets
                                 func_thread = FunctionExecutionThread(self._id, possible_packet, self._handle_packet)
                                 func_thread.start()
                             else:
                                 self._packets.append(possible_packet)
 
                 except ConnectionResetError:
-                    logger.warning("Connection reset, (%s)", str(self._address))
+                    if self._is_on:
+                        logger.warning(f"Connection reset at ID({self._id}), ({self._address})")
                     self._is_connected = False
 
                 except ConnectionAbortedError:
-                    logger.warning("Connection aborted, (%s)", str(self._address))
+                    if self._is_on:
+                        logger.warning(f"Connection aborted at ID({self._id}), ({self._address})")
                     self._is_connected = False
 
                 except OSError:
-                    logger.warning("TCP connection closed while listening")
+                    if self._is_on:
+                        logger.warning("TCP connection closed while listening")
                     self._is_connected = False
 
                 self._exit.wait(self._time_till_next_check)
-
-            logger.debug(f"finished _wait_for_new_input {self.getName()}")
 
     def send_packet(self, packet: Packet) -> bool:
         # TODO: add type hinting when implementation is finished
@@ -135,8 +134,9 @@ class Communicator(threading.Thread):
             while total_sent < data_size:
                 sent = self._socket_connection.send(send_data[total_sent:])
                 if sent == 0:
-                    logger.error("Connection closed. Could not send packet")
+                    logger.warning("Connection closed. Could not send packet")
                     self._is_connected = False
+                    return False
                 total_sent += sent
             self._is_connected = True
             return total_sent == data_size
@@ -151,7 +151,6 @@ class Communicator(threading.Thread):
         while self._is_on:
             try:
                 next_packet = self._packets.pop(0)
-                logger.debug(f"{self._id}: {str(IDManager(self._id))}")
                 actual_outer_id = next_packet.header.id_container.global_id
                 if actual_outer_id > next_global_id:
                     logger.error(f"Packet lost! Expected outer_id: {next_global_id}. Got instead: {actual_outer_id}")
@@ -176,7 +175,7 @@ class Communicator(threading.Thread):
             self._exit.wait(self._time_till_next_check)
             waited += self._time_till_next_check
             if waited > self.wait_for_response_timeout >= 0:
-                logger.debug("wait_for_response waited too long")
+                logger.warning("wait_for_response waited too long")
                 raise TimeoutError("wait_for_response waited too long")
 
     def _handle_packet(self, packet):
@@ -200,25 +199,23 @@ class Communicator(threading.Thread):
         self.send_packet(data_packet)
 
     def stop(self, is_same_thread=False) -> None:
-        """Calling from another thread"""
-        logger.info(f"Stopping communicator: {self._id}")
-        self._is_on = False
-        self._exit.set()
-        try:
-            pass
+        if self._closed:
+            logger.debug("Prevented closing already closed communicator")
+        else:
+            logger.info(f"Stopping communicator: {self._id}")
+            self._is_on = False
+            self._exit.set()
             self._socket_connection.close()
-        except AttributeError:
-            logger.debug("Connection already closed")
-            pass  # Connection already closed
-        self._is_connected = False
-        if not is_same_thread:
-            self.join()
-        remove_manager(self._id)
-        if self._on_close is not None:
-            try:
-                self._on_close(self)
-            except TypeError:
-                pass  # no function provided
+            self._is_connected = False
+            if not is_same_thread:
+                self.join()
+            remove_manager(self._id)
+            if self._on_close is not None:
+                try:
+                    self._on_close(self)
+                except TypeError:
+                    pass  # no function provided
+            self._closed = True
 
     def is_connected(self) -> bool:
         return self._is_connected
@@ -338,7 +335,7 @@ class Connector:
                     time.sleep(wait_time)
                     waited += wait_time
                 if waited >= time_out:
-                    logger.debug("Stopped communicator due to timeout")
+                    logger.warning("Stopped communicator due to timeout")
                     connector.communicator.stop()
         assert isinstance(connector.communicator, Communicator)
         return connector.communicator.is_connected()

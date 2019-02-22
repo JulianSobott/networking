@@ -73,7 +73,7 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
         try:
             self._socket_connection.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._socket_connection.bind(self._address)
-            logger.debug(f"Server is now listening on: {self._address[0]}:{self._address[1]}")
+            logger.info(f"Server is now listening on: {self._address[0]}:{self._address[1]}")
         except OSError:
             # [WinError 10038] socket closed before
             self._is_on = False
