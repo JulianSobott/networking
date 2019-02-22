@@ -131,7 +131,7 @@ class DataPacket(Packet):
 
     @classmethod
     def from_bytes(cls, header: Header, byte_stream: ByteStream) -> 'DataPacket':
-        num_bytes = header.specific_data_size - 1
+        num_bytes = header.specific_data_size
         data = general_unpack(byte_stream, num_bytes)[0]
         return cls.__call__(**data)
 
@@ -168,7 +168,7 @@ class FunctionPacket(Packet):
 
     @classmethod
     def from_bytes(cls, header: Header, byte_stream: ByteStream) -> 'FunctionPacket':
-        num_bytes = header.specific_data_size - 1
+        num_bytes = header.specific_data_size
         all_data = general_unpack(byte_stream, num_bytes)
         function_name: str = all_data[0]
         args: tuple = all_data[1]

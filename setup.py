@@ -17,5 +17,6 @@ setup(name='networking',
         "Documentation": "https://github.com/JulianSobott/networking/wiki",
         "Source Code": "https://github.com/JulianSobott/networking",
       },
-      zip_safe=False
+      zip_safe=False,
+      install_requires=['cryptography']
       )

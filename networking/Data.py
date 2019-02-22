@@ -22,6 +22,7 @@ Data Types that can be packed (and their limitations):
 
 """
 import pickle
+from cryptography.fernet import Fernet
 
 from typing import Tuple, Any
 from utils import Ddict, load_dict_from_json, dump_dict_to_json
@@ -45,6 +46,9 @@ types = Ddict({
     type(None):   0x009,
 })
 
+KEY = Fernet.generate_key()
+FERNET = Fernet(KEY)
+
 
 def general_pack(*args) -> bytes:
     try:
@@ -53,19 +57,23 @@ def general_pack(*args) -> bytes:
     except Exception:
         specific_byte_string = b"1"
         specific_byte_string += pickle.dumps(args)
-    return specific_byte_string
+    encrypted_byte_string = encrypt(specific_byte_string)
+    return encrypted_byte_string
 
 
 def general_unpack(byte_stream: 'ByteStream', num_bytes=None) -> tuple:
-        uses_pickle = byte_stream.next_bytes(1)
-        if str(uses_pickle, ENCODING) == "1":
-            num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes
-            bytes_string = byte_stream.next_bytes(num_bytes)
-            data = pickle.loads(bytes_string)
-        else:
-            all_data = _unpack(byte_stream)
-            data = all_data
-        return data
+    num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes
+    byte_stream = decrypt(byte_stream, num_bytes)
+    num_bytes = byte_stream.remaining_length - 1
+    uses_pickle = byte_stream.next_bytes(1)
+    if str(uses_pickle, ENCODING) == "1":
+        num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes
+        bytes_string = byte_stream.next_bytes(num_bytes)
+        data = pickle.loads(bytes_string)
+    else:
+        all_data = _unpack(byte_stream)
+        data = all_data
+    return data
 
 
 def _pack(*args) -> bytes:
@@ -262,3 +270,11 @@ def unpack_int_type(full_byte_string: bytes) -> int:
 def pack_int(num: int) -> bytes:
     return int.to_bytes(num, NUM_INT_BYTES, BYTEORDER, signed=True)
 
+
+def encrypt(byte_string: bytes) -> bytes:
+    return FERNET.encrypt(byte_string)
+
+
+def decrypt(byte_stream: ByteStream, num_bytes) -> ByteStream:
+    byte_string = FERNET.decrypt(byte_stream.next_bytes(num_bytes))
+    return ByteStream(byte_string)
