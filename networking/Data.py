@@ -22,7 +22,7 @@ Data Types that can be packed (and their limitations):
 
 """
 import pickle
-from cryptography.fernet import Fernet
+# from cryptography.fernet import Fernet
 
 from typing import Tuple, Any
 from utils import Ddict, load_dict_from_json, dump_dict_to_json
@@ -270,20 +270,23 @@ def pack_int(num: int) -> bytes:
 
 class Cryptographer:
 
-    key = Fernet.generate_key()
-    f = Fernet(key)
+    key = None
+    f = None
 
-    def __init__(self, key):
+    @staticmethod
+    def set_key(key):
         Cryptographer.key = key
         Cryptographer.f = Fernet(key)
 
     @staticmethod
     def encrypt(byte_string: bytes) -> bytes:
-        assert Cryptographer.f is not None, "First init Cryptographer"
+        if Cryptographer.f is None:
+            return byte_string
         return Cryptographer.f.encrypt(byte_string)
 
     @staticmethod
     def decrypt(byte_stream: ByteStream, num_bytes) -> ByteStream:
-        assert Cryptographer.f is not None, "First init Cryptographer"
+        if Cryptographer.f is None:
+            return byte_stream
         byte_string = Cryptographer.f.decrypt(byte_stream.next_bytes(num_bytes))
         return ByteStream(byte_string)

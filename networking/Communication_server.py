@@ -11,9 +11,11 @@ import threading
 import socket
 from typing import Dict, Type, Union, Optional
 
+from Data import Cryptographer
 from Logging import logger
 from Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress, Functions, \
     MultiConnector, to_server_id
+from Packets import DataPacket
 
 __all__ = ["ClientPool", "ClientManager", "ClientFunctions"]
 
@@ -162,6 +164,7 @@ class ClientCommunicator(Connector, metaclass=ClientPool):
                                          local_functions=self.local_functions)
         self.communicator.start()
         self.remote_functions.__setattr__(self.remote_functions, "_connector", self)
+        exchange_keys(self)
 
     def close_connection(self: Connector, blocking=True, timeout=float("inf")) -> None:
         return super().close_connection(self, blocking, timeout)
@@ -173,3 +176,17 @@ class ClientCommunicator(Connector, metaclass=ClientPool):
 
 class ClientFunctions(Functions):
     pass
+
+
+def exchange_keys(client_communicator: ClientCommunicator):
+    # generate communication_key TODO
+    communication_key = b"communication_key"
+    # wait for public key
+    public_key_packet = client_communicator.communicator.wait_for_response()
+    public_key = public_key_packet.data["public_key"]
+    # encrypt communication key with public key TODO
+    encrypted_communication_key = communication_key
+    # send communication key
+    communication_packet = DataPacket(communication_key=encrypted_communication_key)
+    client_communicator.communicator.send_packet(communication_packet)
+    Cryptographer.set_key(communication_key)

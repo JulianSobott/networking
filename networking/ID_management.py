@@ -55,7 +55,7 @@ class IDManager(metaclass=IDManagers):
         self.id = id_
         self._next_function_id = 0
         self._next_global_id = 0
-        self._function_stack: List[int] = []
+        self._function_stack: List[int] = [-1, -1]  # 2 initial ids necessary for key exchange
 
     def set_ids_of_packet(self, packet: Packet) -> Optional[Packet]:
         """set ids of packet and adjust internal state"""
