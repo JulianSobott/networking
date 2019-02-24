@@ -22,7 +22,7 @@ Data Types that can be packed (and their limitations):
 
 """
 import pickle
-# from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet
 
 from typing import Tuple, Any
 from utils import Ddict, load_dict_from_json, dump_dict_to_json
@@ -290,3 +290,8 @@ class Cryptographer:
             return byte_stream
         byte_string = Cryptographer.f.decrypt(byte_stream.next_bytes(num_bytes))
         return ByteStream(byte_string)
+
+    @staticmethod
+    def tear_down():
+        Cryptographer.key = None
+        Cryptographer.f = None
