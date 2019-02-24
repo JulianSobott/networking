@@ -55,7 +55,7 @@ class IDManager(metaclass=IDManagers):
         self.id = id_
         self._next_function_id = 0
         self._next_global_id = 0
-        self._function_stack: List[int] = [-1, -1]  # 2 initial ids necessary for key exchange
+        self._function_stack: List[int] = []
 
     def set_ids_of_packet(self, packet: Packet) -> Optional[Packet]:
         """set ids of packet and adjust internal state"""
@@ -92,14 +92,22 @@ class IDManager(metaclass=IDManagers):
         return function_id
 
     def _is_data_packet(self) -> int:
-        function_id = self._function_stack.pop()
-        return function_id
+        try:
+            function_id = self._function_stack.pop()
+            return function_id
+        except IndexError:
+            logger.error("Trying to pop a empty function stack")
+            return -1
 
     def get_next_ids(self) -> Tuple[int, int]:
         return self._next_function_id, self._next_global_id
 
     def get_function_stack(self) -> List[int]:
         return self._function_stack
+
+    def append_dummy_functions(self, num=1):
+        for i in range(num):
+            self._function_stack.append(-2)
 
     def __repr__(self):
         return f"IDManager_{self.id}({self._next_function_id, self._next_global_id})"
