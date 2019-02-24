@@ -12,6 +12,7 @@ import socket
 from typing import Dict, Type, Union, Optional
 
 from Data import Cryptographer
+from ID_management import IDManager
 from Logging import logger
 from Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress, Functions, \
     MultiConnector, to_server_id
@@ -182,6 +183,7 @@ def exchange_keys(client_communicator: ClientCommunicator):
     # generate communication_key TODO
     communication_key = b"communication_key"
     # wait for public key
+    IDManager(client_communicator.id).append_dummy_functions(2)
     public_key_packet = client_communicator.communicator.wait_for_response()
     public_key = public_key_packet.data["public_key"]
     # encrypt communication key with public key TODO

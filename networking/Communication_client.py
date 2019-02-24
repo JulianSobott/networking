@@ -13,6 +13,7 @@ from Logging import logger
 from Communication_general import Connector, SingleConnector, MultiConnector, Functions, Communicator, SocketAddress
 from Packets import DataPacket
 from Data import Cryptographer
+from ID_management import IDManager
 
 
 class ServerCommunicator(SingleConnector):
@@ -39,6 +40,7 @@ def exchange_keys(connector: Union['Connector', Type['SingleConnector']]):
     # generate public key + private key TODO
     public_key = b"public_key"
     private_key = b"private_key"
+    IDManager(connector.get_id()).append_dummy_functions(2)
     # send public key
     public_key_packet = DataPacket(public_key=public_key)
     connector.communicator.send_packet(public_key_packet)

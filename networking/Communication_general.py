@@ -365,9 +365,9 @@ class Connector:
             return False
         return connector.communicator.is_connected()
 
-    @property
-    def id(self):
-        return self._id
+    @staticmethod
+    def get_id(connector: Union['Connector', Type['SingleConnector']]):
+        return connector._id
 
 
 class MultiConnector(Connector, metaclass=MetaSingletonConnector):
@@ -391,6 +391,9 @@ class MultiConnector(Connector, metaclass=MetaSingletonConnector):
     def is_connected(self) -> bool:
         return super().is_connected(self)
 
+    def get_id(self):
+        return super().get_id(self)
+
 
 class SingleConnector(Connector):
     """Only static accessible. Therefore only a single connector (per address) per machine possible"""
@@ -406,6 +409,10 @@ class SingleConnector(Connector):
     @classmethod
     def is_connected(cls) -> bool:
         return super().is_connected(cls)
+
+    @classmethod
+    def get_id(cls):
+        return super().get_id(cls)
 
 
 class Functions(metaclass=MetaFunctionCommunicator):
