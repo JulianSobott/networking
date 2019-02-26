@@ -8,6 +8,7 @@ nose2 = "*"
 
 [packages]
 cryptography = "*"
+pyopenssl = "*"
 
 [requires]
 python_version = "3.7"
