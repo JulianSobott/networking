@@ -72,6 +72,9 @@ class Communicator(threading.Thread):
                 logger.error("Is already connected to server")
                 logger.debug(e)
                 self._is_connected = True
+            except socket.gaierror:
+                raise ValueError(
+                    f"Address error. {self._address} is not a valid address. Address must be of type {SocketAddress}")
 
             self._exit.wait(seconds_till_next_try)
             waited += seconds_till_next_try

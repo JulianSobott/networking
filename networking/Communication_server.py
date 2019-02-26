@@ -12,7 +12,8 @@ import socket
 from typing import Dict, Type, Union, Optional
 
 from networking.Logging import logger
-from networking.Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress, Functions, \
+from networking.Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress, \
+    Functions, \
     MultiConnector, to_server_id
 
 __all__ = ["ClientPool", "ClientManager", "ClientFunctions"]
@@ -104,6 +105,9 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
             # [WinError 10038] socket closed before
             logger.error(e)
             self._is_on = False
+        except socket.gaierror:
+            raise ValueError(
+                f"Address error. {self._address} is not a valid address. Address must be of type {SocketAddress}")
 
         while self._is_on:
             try:
