@@ -326,7 +326,10 @@ class Connector:
                 timeout=float("inf")) -> bool:
         if connector.communicator is None:
             connector.communicator = Communicator(addr, id_=connector._id, local_functions=connector.local_functions)
-            connector.remote_functions.__setattr__(connector.remote_functions, "_connector", connector)
+            try:
+                connector.remote_functions.__setattr__(connector.remote_functions, "_connector", connector)
+            except TypeError:
+                raise AttributeError("Communicator functions are not set.")
             connector.communicator.start()
 
             def try_connect():
