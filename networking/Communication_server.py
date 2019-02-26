@@ -11,8 +11,8 @@ import threading
 import socket
 from typing import Dict, Type, Union, Optional
 
-from Logging import logger
-from Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress, Functions, \
+from networking.Logging import logger
+from networking.Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress, Functions, \
     MultiConnector, to_server_id
 
 __all__ = ["ClientPool", "ClientManager", "ClientFunctions"]

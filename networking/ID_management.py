@@ -20,9 +20,9 @@ When a communicator is closed call remove_manger(), with the communicator ID
 @internal_use:
 """
 from typing import List, Optional, Dict, Tuple
-from Logging import logger
 
-from Packets import FunctionPacket, DataPacket, Packet
+from networking.Logging import logger
+from networking.Packets import FunctionPacket, DataPacket, Packet
 
 __all__ = ["IDManager", "remove_manager"]
 

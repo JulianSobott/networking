@@ -9,7 +9,7 @@
 """
 import networking as net
 
-from Logging import logger
+from networking.Logging import logger
 
 
 class _DummyServerFunctions(net.ServerFunctions):

@@ -9,8 +9,8 @@
 """
 from typing import Optional
 
-from Logging import logger
-from Communication_general import SingleConnector, MultiConnector, Functions, Communicator
+from networking.Logging import logger
+from networking.Communication_general import SingleConnector, MultiConnector, Functions, Communicator
 
 
 class ServerCommunicator(SingleConnector):

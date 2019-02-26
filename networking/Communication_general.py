@@ -13,10 +13,10 @@ import socket
 import time
 from typing import Tuple, List, Dict, Optional, Callable, Any, Type, Union
 
-from Logging import logger
-from Packets import Packet, DataPacket, FunctionPacket, Header
-from ID_management import IDManager, remove_manager
-from Data import ByteStream
+from networking.Logging import logger
+from networking.Packets import Packet, DataPacket, FunctionPacket, Header
+from networking.ID_management import IDManager, remove_manager
+from networking.Data import ByteStream
 
 SocketAddress = Tuple[str, int]
 

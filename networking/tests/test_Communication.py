@@ -3,10 +3,10 @@ import sys
 
 from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
 
-from Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
-from Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager, ClientPool
-from Communication_general import to_server_id
-from Logging import logger
+from networking.Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
+from networking.Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager, ClientPool
+from networking.Communication_general import to_server_id
+from networking.Logging import logger
 
 from networking.tests.example_functions import DummyPerson, DummyServerCommunicator, DummyClientCommunicator, \
     DummyMultiServerCommunicator

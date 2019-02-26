@@ -10,6 +10,7 @@
 
 @TODO:
 """
-from Communication_client import ServerCommunicator, ServerFunctions, MultiServerCommunicator
-from Communication_server import ClientCommunicator, ClientFunctions, ClientManager, MetaClientManager, ClientPool
-import Logging
+from networking.Communication_client import ServerCommunicator, ServerFunctions, MultiServerCommunicator
+from networking.Communication_server import ClientCommunicator, ClientFunctions, ClientManager, MetaClientManager, ClientPool
+import networking.Logging
+
