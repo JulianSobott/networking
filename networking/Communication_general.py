@@ -256,14 +256,15 @@ class MetaFunctionCommunicator(type):
             pass
         return cls
 
-    def __getattribute__(self, item):
-
+    def __getattribute__(self, item: str):
         if item == "__getattr__":
             return type.__getattribute__(self, item)
         if item == "__setattr__":
             return type.__setattr__
         if item == "__call__":
             return type.__call__
+        if item.startswith("__", 0, 2):
+            return type.__getattribute__(self, item)
 
         def container(*args, **kwargs) -> Any:
             function_name = item

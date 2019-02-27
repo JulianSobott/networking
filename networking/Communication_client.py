@@ -27,5 +27,17 @@ class MultiServerCommunicator(MultiConnector):
 
 
 class ServerFunctions(Functions):
+    """Static class that contains all available server side functions. All functions must be stored in the
+    :attr:`__dict__` attribute. To achieve this you have two options.
+
+    1. One class :class:`ServerFunctions` used at client and server:
+        * Directly import them with :code:`from server import dummy_function`
+    2. Split client and server:
+        * At the client redefine the server functions without implementation:
+                :code:`def dummy_function(x, y): ...`
+        * At the server either use the first option or redefine and call the implementation:
+            :code:`def dummy_function(x, y): return server.dummy_function(x, y)`
+
+        """
     pass
 
