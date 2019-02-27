@@ -8,13 +8,35 @@ Welcome to networking's documentation!
 
 .. toctree::
    :maxdepth: 2
+   :glob:
    :caption: Contents:
 
+   external/*
 
 
-Indices and tables
-==================
+This tool abstracts network communication to a level, where the end user don`t has to care about
+network communication. Server side functions can be called at the client as they were local. Functions may be called
+with parameters and may return values.
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+Features
+--------
+- Directly call functions at the remote side
+- Get the return values
+- Don`t care about sockets
+
+Installation
+------------
+
+    :code:`pip install networking`
+
+Contribute
+----------
+
+- Issue Tracker: github.com/JulianSobott/networking/issues
+- Source Code: github.com/JulianSobott/networking
+
+
+License
+-------
+
+The project is licensed under the Apache Software License.

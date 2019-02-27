@@ -12,9 +12,11 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+sys.path.append(os.path.abspath('../'))
+#sys.path.append(os.path.abspath('../networking/'))
+#sys.path.append(os.path.abspath('../networking/Communication_client.py'))
 
 
 # -- Project information -----------------------------------------------------
@@ -40,6 +42,7 @@ release = ''
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
+    'sphinx_autodoc_typehints',
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.viewcode',
@@ -175,6 +178,8 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
+
+add_module_names = False
 
 
 # -- Extension configuration -------------------------------------------------
