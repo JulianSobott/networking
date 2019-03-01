@@ -20,6 +20,8 @@ __all__ = ["ClientPool", "ClientManager", "ClientFunctions"]
 
 
 class ClientPool(type):
+    """This class stores a instance of every client connected to the server. The instances can be accessed over the get
+    function."""
     _instances: Dict[SocketAddress, Dict[int, 'ClientCommunicator']] = {}
     _last_address = None
 
@@ -34,6 +36,10 @@ class ClientPool(type):
 
     @staticmethod
     def get(client_id: Optional[int] = None, server_address: Optional[SocketAddress] = None) -> 'ClientCommunicator':
+        """Returns the proper ClientCommunicator. The proper one is the one who called the server-side function. This
+        function is thread dependent. So if you create a new thread inside the called function you have to store the
+        :code:`id` of the current ClientCommunicator and then call this function with this id as optional parameter.
+        """
         if server_address is None:
             server_address = ClientPool._last_address
             if server_address is None:
@@ -56,6 +62,7 @@ class ClientPool(type):
 
     @staticmethod
     def tear_down():
+        """Closes all server-side client connections"""
         while len(ClientPool._instances.values()) > 0:
             addresses = ClientPool._instances.popitem()[1]
             while len(addresses.values()) > 0:
@@ -179,5 +186,6 @@ class ClientCommunicator(Connector, metaclass=ClientPool):
 
 
 class ClientFunctions(Functions):
-
+    """Static class that contains all available client side functions. All functions must be stored in the
+    :attr:`__dict__` attribute."""
     pass
