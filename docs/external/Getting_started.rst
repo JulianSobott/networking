@@ -3,7 +3,7 @@ Getting started!
 After you installed the package you can start setting up your project.
 There are some parts you always need to add to your project. This tutorial will guide you through all necessary parts, \
 will explain them and shows alternatives.
-At the end of this tutorial you will have a extraordinary login application. The focus is to introduce \
+At the end of this tutorial you will have a login application. The focus is to introduce \
 the networking library and not how to write a secure login application. At the end of this site you will find the \
 complete code.
 
@@ -26,6 +26,7 @@ STEP 2: Defining the core functions
 
 In this step we will define all functions that we need for a login application. We don't really care about how we could \
 integrate the networking library. The login process should proceed like this:
+
 1. The client requests a login to the server
 2. The server gets all necessary data for login from the client
 3. The data is checked and if it is correct the client will be logged in
@@ -78,7 +79,8 @@ We add a few functions to the client and the server that we need later on:
             return True
         return False
 
-Before we connect everything with the networking library, we will show you how it would be done when everything were \
+Before we connect everything with the networking library, we will show you how the relevant functions :code:`login()` and \
+:code:`request_login` would be implemented when everything were \
 just client side and no network between. We leave out all the imports for simplicity.
 
 .. code-block:: python
@@ -120,7 +122,7 @@ at the server/client.
 Take a look at the :any:`Functions` page to see alternative ways of overwriting these classes.
 
 Now we need to overwrite the classes that are responsible for communication. You do not need to know how the communication classes \
-work. It is only important, that you don't forget to overwrite them. And don't change the attributes.
+work. It is only important, that you don't forget to overwrite them and don't change the attributes.
 
 *interface.py*
 
@@ -133,7 +135,8 @@ STEP 4: Connect everything
 --------------------------
 
 In this step we will connect everything.
-We start by importing the interface to both files.
+We start by importing the interface to both files. Notice that you can NOT use the :code:`from interface import ...` syntax, because \
+this will lead to a :code:`ImportError`.
 
 *client.py*, *server.py*
 
@@ -146,6 +149,7 @@ Now we call the :code:`request_login()` function inside :code:`login()`
 *client.py*
 
 .. code-block:: python
+    :emphasize-lines: 2
 
     def login():
         successfully_logged_in = interface.ServerCommunicator.remote_functions.request_login()
@@ -168,7 +172,9 @@ you can add an alias directly under the imports.
 
 
 At the server things are a bit different. The problem is, that one server can be connected with multiple clients. To handle \
-this, there is a :class:`ClientPool` class available. This class manages all clients. So the new code in server is:
+this, there is a :class:`ClientPool` class available. This class manages all clients. Among other things, this class has a function \
+:code:`get()` which return the proper :class:`ClientCommunicator`. The proper is the one who called this function. \
+So the new code in server is:
 
 *server.py*
 
@@ -181,7 +187,8 @@ STEP 5: Connecting the server and client
 
 Finally we need to start the server and the client, and connect the client to the server.
 
-At the client-side you can use the :class:`ServerCommunicator` to connect to the server. We are using the localhost address, \
+At the client-side you can use the :class:`ServerCommunicator`, which we created previously in *interface.py*, \
+to connect to the server. We are using the localhost address, \
 because we only want to simulate a server. The address and port must be changed, when you move to a external server.
 
 *client.py*
@@ -225,27 +232,38 @@ After 20 seconds we close and stop everything. Normally you would run the server
 CONCLUSION
 ----------
 Congratulations you finished your first program that communicates over the network with help of the networking library.
+Now you can start your server, then start the client. At the client you are prompted in the console to enter your username \
+and password. Enter any random value and see if you were successfully logged in.
 Some parts of the code could look pretty complicated. The good thing is, you don't have to understand what is going on, you \
 just need to know how to set everything up. (If you are really interested in the stuff behind the scenes you are welcome \
 to have a look at the `Github repository <https://github.com/JulianSobott/networking>`_ ). The code that you have created \
 can be pretty much copy and pasted to every new project. You only need to change the function includes in *interface.py*.
 
+WHAT IS NEXT?
+-------------
+You can experiment with this example code by adding own functions. Try for example creating a function with parameters and see if it still works.
+You can also try what happens when an error is risen. The cool thing is, that you can code like you are really calling these functions, \
+but keep in mind everything works over a network and is transmitted over a tcp-connection. When you are finished with your experiments \
+you can start your own project.
+
 FINAL CODE
 ----------
-Now you can start your server, then start the client. At the client you are prompted in the console to enter your username \
-and password. Enter any random value and see if you were successfully logged in. Your final code should look something like this:
+Your final code should look something like this:
 
 *client.py*
 
 .. literalinclude:: ../../networking_examples/login_example/client.py
     :language: python
+    :linenos:
 
 *interface.py*
 
 .. literalinclude:: ../../networking_examples/login_example/interface.py
     :language: python
+    :linenos:
 
 *server.py*
 
 .. literalinclude:: ../../networking_examples/login_example/server.py
     :language: python
+    :linenos:
