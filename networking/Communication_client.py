@@ -23,6 +23,11 @@ class ServerCommunicator(SingleConnector):
 
 
 class MultiServerCommunicator(MultiConnector):
+    """A class that allows in contrast to the :class:`ServerCommunicator` multiple instances. This class also needs
+    to be overwritten, just like :class:`ServerCommunicator`. To create and use call :code:`MultiServerCommunicator(n)`,
+    where n is any number below 30. The object may not be stored, but can be called in different parts of the Code and
+    the same object is returned, like a Singleton.
+    """
     pass
 
 

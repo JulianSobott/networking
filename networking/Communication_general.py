@@ -413,6 +413,10 @@ class SingleConnector(Connector):
 
 
 class Functions(metaclass=MetaFunctionCommunicator):
+    """Static class that contains all available local and remote functions. All functions must be stored in the
+        :attr:`__dict__` attribute.
+
+            """
     _connector: Optional[Communicator] = None
 
     def __new__(cls, *args, **kwargs):

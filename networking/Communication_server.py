@@ -158,8 +158,11 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
 
 
 class ClientCommunicator(Connector, metaclass=ClientPool):
+    """A static accessible class, that is responsible for communicating with a client.
+    This class only needs to be overwritten, but is only used internally. The overwritten class needs to set the
+    attributes :code:`local_functions` and :code:`remote_functions`. """
 
-    def __init__(self, id_, address, connection, on_close):
+    def __init__(self, id_: int, address: SocketAddress, connection: socket.socket, on_close):
         super().__init__()
         self._id = id_
         self.communicator = Communicator(address, id_, connection, from_accept=True, on_close=on_close,
@@ -176,4 +179,5 @@ class ClientCommunicator(Connector, metaclass=ClientPool):
 
 
 class ClientFunctions(Functions):
+
     pass
