@@ -7,7 +7,7 @@ Welcome to networking's documentation!
 ======================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :glob:
    :caption: Contents:
 
@@ -23,6 +23,8 @@ Features
 - Directly call functions at the remote side
 - Get the return values
 - Don`t care about sockets
+
+.. _Installation:
 
 Installation
 ------------

@@ -97,8 +97,8 @@ just client side and no network between. We leave out all the imports for simpli
         password = get_password()
         return is_valid_data(username, password)
 
-STEP 3: Setup the networking stuff
-----------------------------------
+STEP 3: Setup the 'networking' stuff
+------------------------------------
 
 But because there is always a network between a server and a client, we need another way of calling a server-side function.
 This is where the networking library comes in. We now need to setup a few things in the interface. We start by importing \
