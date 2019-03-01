@@ -27,7 +27,19 @@ Features
 Installation
 ------------
 
-    :code:`pip install networking`
+The easiest way to install is to use `pip <https://pip.pypa.io/en/stable/quickstart/>`_:
+
+.. code-block:: console
+
+   pip install networking
+
+It is also possible to clone the repository from `Github <https://github.com/JulianSobott/networking>`_ with:
+
+.. code-block:: console
+
+   git clone https://github.com/JulianSobott/networking.git
+
+
 
 Contribute
 ----------
