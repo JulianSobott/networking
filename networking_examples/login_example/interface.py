@@ -1,6 +1,14 @@
 import networking as net
 
 
+class ServerCommunicator:
+    remote_functions = None
+
+
+class ClientCommunicator:
+    remote_functions = None
+
+
 class ServerFunctions(net.ServerFunctions):
     """All server functions, that can be called by the client"""
     from server import request_login

@@ -157,7 +157,10 @@ Now we call the :code:`request_login()` function inside :code:`login()`
 
 As you can see the only thing that changed in compare to the client only code, is that we prepended some classes to the \
 :code:`request_login()` function. This code is working but the new line is very long and can look confusing. To solve this \
-you can add an alias directly under the imports.
+you can add an alias directly under the imports. Because remote_functions are not defined when it is imported we need to \
+add extra definitions to the interface to prevent importing errors.
+
+*client.py*
 
 .. code-block:: python
 
@@ -167,6 +170,18 @@ you can add an alias directly under the imports.
         successfully_logged_in = server.request_login()
         ...
 
+Add the following code under the imports and above all previous defined classes.
+
+*interface.py*
+
+.. code-block:: python
+
+    class ServerCommunicator:
+        remote_functions = None
+
+
+    class ClientCommunicator:
+        remote_functions = None
 
 At the server things are a bit different. The problem is, that one server can be connected with multiple clients. To handle \
 this, there is a :class:`ClientPool` class available. This class manages all clients. Among other things, this class has a function \

@@ -72,6 +72,7 @@ class ClientPool(type):
 
 
 class MetaClientManager(type):
+    """Allows that multiple ClientManagers can be created. Stores every instance of a ClientManager"""
     _instances: Dict[SocketAddress, 'ClientManager'] = {}
     _last_instance: 'ClientManager'
 
