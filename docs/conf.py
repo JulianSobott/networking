@@ -14,9 +14,8 @@
 #
 import os
 import sys
-sys.path.append(os.path.abspath('../'))
-#sys.path.append(os.path.abspath('../networking/'))
-#sys.path.append(os.path.abspath('../networking/Communication_client.py'))
+sys.path.insert(0, os.path.abspath('../'))
+sys.path.append(os.path.abspath('../networking_examples/login_example/'))
 
 
 # -- Project information -----------------------------------------------------
