@@ -38,7 +38,7 @@ Three files *Client.py*, *Server.py*, *Interface.py* at server and client.
 
 *Client.py*: The client is started here and client-side functions are defined here.
 
-*Interface.py*: Most of the networking important setup stuff is here. For example the necessary :any:`Functions`, that define
+*Interface.py*: Most of the networking important setup stuff is here. For example the necessary :doc:`Functions`, that define
 which functions are available at the client and the server.
 
 *Server.py*: The server is started here and server-side functions are defined here.

@@ -11,7 +11,10 @@ Welcome to networking's documentation!
    :glob:
    :caption: Contents:
 
-   external/*
+   external/Getting_started
+   external/Project_structures
+   external/Checklist
+   external/Functions
 
 
 This tool abstracts network communication to a level, where the end user don`t has to care about

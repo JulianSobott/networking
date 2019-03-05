@@ -4,7 +4,7 @@ with open("README.rst", "r") as fh:
     long_description = fh.read()
 
 setup(name='networking',
-      version='0.1a2',
+      version='0.1a4',
       description='High level network communication',
       long_description=long_description,
       url='https://github.com/JulianSobott/networking',

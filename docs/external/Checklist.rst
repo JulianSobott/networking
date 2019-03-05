@@ -7,9 +7,9 @@ page.
 
 1. Install networking ( :ref:`Installation` )
 2. Overwrite classes:
-    2.1 ServerFunctions (:any:`Functions`)
+    2.1 ServerFunctions (:doc:`Functions`)
 
-    2.2 ClientFunctions (:any:`Functions`)
+    2.2 ClientFunctions (:doc:`Functions`)
 
     2.3 ServerCommunicator ()
 
@@ -18,4 +18,4 @@ page.
 3. Start the server with :class:`ClientManager`
 4. Start the client with created :class:`ServerCommunicator`
 
-While you are working on your project, remember to add necessary functions to the :any:`Functions`.
+While you are working on your project, remember to add necessary functions to the :doc:`Functions`.
