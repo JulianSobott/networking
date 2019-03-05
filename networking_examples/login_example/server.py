@@ -4,8 +4,8 @@ import time
 
 
 def request_login():
-    username = net.ClientPool.get().remote_functions.get_username()
-    password = net.ClientPool.get().remote_functions.get_password()
+    username = net.ClientManager().get().remote_functions.get_username()
+    password = net.ClientManager().get().remote_functions.get_password()
     return is_valid_data(username, password)
 
 

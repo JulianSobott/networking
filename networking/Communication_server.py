@@ -16,59 +16,7 @@ from networking.Communication_general import Communicator, Connector, MetaFuncti
     Functions, \
     MultiConnector, to_server_id
 
-__all__ = ["ClientPool", "ClientManager", "ClientFunctions"]
-
-
-class ClientPool(type):
-    """This class stores a instance of every client connected to the server. The instances can be accessed over the get
-    function."""
-    _instances: Dict[SocketAddress, Dict[int, 'ClientCommunicator']] = {}
-    _last_address = None
-
-    def __call__(cls, client_id, address, connection, on_close):
-        if address not in ClientPool._instances:
-            ClientPool._instances[address]: Dict[int, 'ClientCommunicator'] = {}
-            ClientPool._last_address = address
-        if client_id not in ClientPool._instances[address]:
-            ClientPool._instances[address][client_id] = super(ClientPool, cls).__call__(client_id, address, connection,
-                                                                                        on_close)
-        return ClientPool._instances[address][client_id]
-
-    @staticmethod
-    def get(client_id: Optional[int] = None, server_address: Optional[SocketAddress] = None) -> 'ClientCommunicator':
-        """Returns the proper ClientCommunicator. The proper one is the one who called the server-side function. This
-        function is thread dependent. So if you create a new thread inside the called function you have to store the
-        :code:`id` of the current ClientCommunicator and then call this function with this id as optional parameter.
-        """
-        if server_address is None:
-            server_address = ClientPool._last_address
-            if server_address is None:
-                raise Exception("No client connected. Can only be called when a client connects to the server")
-        if client_id is None:
-            current_thread: Union[ClientCommunicator, threading.Thread] = threading.current_thread()
-            try:
-                client_id = current_thread.id
-            except AttributeError:
-                """Function may only be called from same thread (thread that called the server function) 
-                or with a valid existing client_id!"""
-                logger.error(
-                    "Captain we have a multithreading problem! Thread dependent function called from another thread")
-                raise Exception("Thread dependent function called from another thread")
-        if client_id not in ClientPool._instances[server_address]:
-            raise Exception("No client connected. Can only be called when a client connects to the server")
-        assert isinstance(ClientPool._instances[server_address][client_id], ClientCommunicator), \
-            "Previous checks didnt handle all cases"
-        return ClientPool._instances[server_address][client_id]
-
-    @staticmethod
-    def tear_down():
-        """Closes all server-side client connections"""
-        while len(ClientPool._instances.values()) > 0:
-            addresses = ClientPool._instances.popitem()[1]
-            while len(addresses.values()) > 0:
-                client_communicator: ClientCommunicator = addresses.popitem()[1]
-                client_communicator.close_connection()
-                client_communicator.close_connection()
+__all__ = ["ClientManager", "ClientFunctions"]
 
 
 class MetaClientManager(type):
@@ -77,6 +25,12 @@ class MetaClientManager(type):
     _last_instance: 'ClientManager'
 
     def __call__(cls, *args, **kwargs) -> 'ClientManager':
+        if len(args) == 0:
+            if MetaClientManager._last_instance is not None:
+                return MetaClientManager._last_instance
+            else:
+                raise TypeError(
+                    "No ClientManager found! First instantiate a ClientManager with address and ClientCommunicator.")
         address: SocketAddress = args[0]
         if address not in cls._instances:
             MetaClientManager._instances[address] = super(MetaClientManager, cls).__call__(*args, **kwargs)
@@ -93,7 +47,7 @@ class MetaClientManager(type):
 
 class ClientManager(threading.Thread, metaclass=MetaClientManager):
 
-    def __init__(self, address: SocketAddress, client_communicator: Type['ClientCommunicator']) -> None:
+    def __init__(self, address: SocketAddress = None, client_communicator: Type['ClientCommunicator'] = None) -> None:
         super().__init__(name="ClientManager")
         self._socket_connection = socket.socket()
         self.clients: Dict[int, ClientCommunicator] = {}
@@ -137,6 +91,26 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
         finally:
             self._next_client_id += 1
 
+    def get(self, client_id: Optional[int] = None) -> 'ClientCommunicator':
+        """Returns the proper ClientCommunicator. The proper one is the one who called the server-side function. This
+        function is thread dependent. So if you create a new thread inside the called function you have to store the
+        :code:`id` of the current ClientCommunicator and then call this function with this id as optional parameter.
+        """
+        if client_id is None:
+            current_thread: Union[ClientCommunicator, threading.Thread] = threading.current_thread()
+            try:
+                client_id = current_thread.id
+            except AttributeError:
+                """Function may only be called from same thread (thread that called the server function) 
+                or with a valid existing client_id!"""
+                logger.error(
+                    "Captain we have a multithreading problem! Thread dependent function called from another thread")
+                raise Exception("Thread dependent function called from another thread")
+        if client_id not in self.clients.keys():
+            raise Exception("No client connected. The client_id doesn't match any connected clients.")
+        assert isinstance(self.clients[client_id], ClientCommunicator), "Previous checks didnt handle all cases"
+        return self.clients[client_id]
+
     def remove_disconnected_client(self, communicator: Communicator) -> None:
         """Called when one side stops"""
         try:
@@ -165,7 +139,7 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
         self.stop_connections()
 
 
-class ClientCommunicator(Connector, metaclass=ClientPool):
+class ClientCommunicator(Connector):
     """A static accessible class, that is responsible for communicating with a client.
     This class only needs to be overwritten, but is only used internally. The overwritten class needs to set the
     attributes :code:`local_functions` and :code:`remote_functions`. """
@@ -180,6 +154,14 @@ class ClientCommunicator(Connector, metaclass=ClientPool):
 
     def close_connection(self: Connector, blocking=True, timeout=float("inf")) -> None:
         return super().close_connection(self, blocking, timeout)
+
+    @staticmethod
+    def get(client_id: Optional[int] = None, server_address: Optional[SocketAddress] = None) -> 'ClientCommunicator':
+        """Same as the :code:`ClientManager.get()`. Not sure which one is more user friendly or intuitive to call"""
+        if server_address:
+            return ClientManager(server_address).get(client_id)
+        else:
+            return ClientManager().get(client_id)
 
     @property
     def id(self):

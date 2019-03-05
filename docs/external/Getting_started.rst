@@ -184,8 +184,10 @@ Add the following code under the imports and above all previous defined classes.
         remote_functions = None
 
 At the server things are a bit different. The problem is, that one server can be connected with multiple clients. To handle \
-this, there is a :class:`ClientPool` class available. This class manages all clients. Among other things, this class has a function \
-:code:`get()` which return the proper :class:`ClientCommunicator`. The proper is the one who called this function. \
+this, you will need the :class:`ClientManager` again. Among other things, this class has a function \
+:code:`get()` which return the proper :class:`ClientCommunicator`. Note that you don't need to add any arguments to the \
+call and get methods. The call will return the same object as the one previously created. The proper :class:`ClientCommunicator` \
+is the one who called this function. \
 So the new code in server is:
 
 *server.py*

@@ -92,5 +92,3 @@ Classes
 .. autoclass:: networking.Communication_general.Functions
 .. autoclass:: networking.Communication_server.ClientFunctions
 .. autoclass:: networking.Communication_client.ServerFunctions
-.. autoclass:: networking.Communication_server.ClientPool
-    :members:

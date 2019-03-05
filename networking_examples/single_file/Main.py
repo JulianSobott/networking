@@ -50,7 +50,7 @@ class ServerFunctions(net.ServerFunctions):
     # A class that defines every method that can be called at the server from a client
     @staticmethod
     def greet_client():
-        return net.ClientPool.get().remote_functions.say_hello("Walter")
+        return net.ClientManager().get().remote_functions.say_hello("Walter")
 
     @staticmethod
     def say_hello(name: str) -> str:
@@ -58,8 +58,8 @@ class ServerFunctions(net.ServerFunctions):
 
     @staticmethod
     def set_username(name: str):
-        net.ClientPool.get().username = name
-        print(f"Successfully set username to '{net.ClientPool.get().username}'")
+        net.ClientManager().get().username = name
+        print(f"Successfully set username to '{net.ClientManager().get().username}'")
 
 
 class ClientCommunicator(net.ClientCommunicator):

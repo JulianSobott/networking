@@ -4,7 +4,7 @@ import sys
 from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
 
 from networking.Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
-from networking.Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager, ClientPool
+from networking.Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager
 from networking.Communication_general import to_server_id
 from networking.Logging import logger
 
@@ -19,7 +19,6 @@ class CommunicationTestCase(unittest.TestCase):
         DummyServerCommunicator.close_connection()
         MultiServerCommunicator.close_all_connections()
         MetaClientManager.tear_down()
-        ClientPool.tear_down()
 
     def setUp(self):
         DummyMultiServerCommunicator.close_all_connections()

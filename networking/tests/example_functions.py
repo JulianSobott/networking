@@ -162,18 +162,18 @@ def huge_args_huge_ret(*args):
 
 
 def func_in_func(start: int) -> bool:
-    ret = net.ClientPool.get().remote_functions.incrementer(start)
+    ret = net.ClientManager().get().remote_functions.incrementer(start)
     return ret + 1
 
 
 def many_func_in_func():
-    return net.ClientPool.get().remote_functions.client_faculty(5)
+    return net.ClientManager().get().remote_functions.client_faculty(5)
 
 
 def server_faculty(number: int) -> int:
     if number <= 1:
         return number
-    return number * net.ClientPool.get().remote_functions.client_faculty(number - 1)
+    return number * net.ClientManager().get().remote_functions.client_faculty(number - 1)
 
 
 def client_faculty(number: int) -> int:
