@@ -12,9 +12,7 @@ import socket
 from typing import Dict, Type, Union, Optional
 
 from networking.Logging import logger
-from networking.Communication_general import Communicator, Connector, MetaFunctionCommunicator, SocketAddress, \
-    Functions, \
-    MultiConnector, to_server_id
+from networking.Communication_general import Communicator, Connector, SocketAddress, Functions, to_server_id
 
 __all__ = ["ClientManager", "ClientFunctions"]
 
@@ -46,6 +44,8 @@ class MetaClientManager(type):
 
 
 class ClientManager(threading.Thread, metaclass=MetaClientManager):
+    """This class accepts new clients and stores them in an array. Provides access to each client. Necessary for every
+    server. The start() method will start the ClientManager to listen for new clients."""
 
     def __init__(self, address: SocketAddress = None, client_communicator: Type['ClientCommunicator'] = None) -> None:
         super().__init__(name="ClientManager")
