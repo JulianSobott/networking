@@ -14,12 +14,9 @@ STEP 1: Creating the files
 2. Create 3 files inside this project and name them :code:`client.py`, :code:`server.py` and :code:`interface.py`.
     .. note::
 
-        There are different ways for a project structure. For more information see **DUMMY_PAGE**
+        There are different ways for a project structure. For more information see :doc:`Project_structures`.
         The advantage of this approach is, that it is very straightforward what each file does, and easy to maintain.
 
-    .. todo::
-
-        Add page link
 
 STEP 2: Defining the core functions
 -----------------------------------
