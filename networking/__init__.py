@@ -10,3 +10,4 @@ from networking.Communication_client import ServerCommunicator, ServerFunctions,
 from networking.Communication_server import ClientCommunicator, ClientFunctions, ClientManager
 import networking.Logging
 
+networking.Logging.logger.setLevel(40)
