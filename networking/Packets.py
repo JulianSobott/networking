@@ -34,7 +34,7 @@ New <cls>_packet:
 from enum import Enum
 import os
 import pickle
-from typing import Union, Dict, Any, Callable
+from typing import Union, Dict, Any, Callable, Optional
 
 from networking.utils import Ddict
 from networking.Logging import logger
@@ -87,7 +87,7 @@ class Header:
 
 class Packet:
 
-    def __init__(self, packet: Union['FunctionPacket', 'DataPacket']) -> None:
+    def __init__(self, packet: Union['FunctionPacket', 'DataPacket', 'FileMetaPacket']) -> None:
         self.header = Header.from_packet(packet)
 
     def pack(self):
@@ -101,7 +101,7 @@ class Packet:
         return byte_string
 
     @classmethod
-    def from_bytes(cls, header: Header, byte_stream: ByteStream) -> Union['FunctionPacket', 'DataPacket']:
+    def from_bytes(cls, header: Header, byte_stream: ByteStream) -> Union['FunctionPacket', 'DataPacket', 'FileMetaPacket']:
         if header.packet_type not in packets.values():
             raise ValueError("Unknown packet ID: (" + str(header.packet_type) + ")")
         packet = packets[header.packet_type].from_bytes(header, byte_stream)
@@ -162,10 +162,6 @@ class FunctionPacket(Packet):
         self.args: tuple = args
         self.kwargs: Dict[str, Any] = kwargs
 
-    def execute(self, connection, functions):
-        pass
-        # TODO: implement
-
     @classmethod
     def from_bytes(cls, header: Header, byte_stream: ByteStream) -> 'FunctionPacket':
         num_bytes = header.specific_data_size - 1
@@ -190,7 +186,37 @@ class FunctionPacket(Packet):
             f"{str(self.args)}, {str(self.kwargs)})"
 
 
+class FileMetaPacket(Packet):
+
+    def __init__(self, src_path: str, dst_path: Optional[str] = None):
+        super().__init__(self)
+        self.src_path = src_path
+        self.dst_path = dst_path
+
+    @classmethod
+    def from_bytes(cls, header: Header, byte_stream: ByteStream) -> 'FileMetaPacket':
+        num_bytes = header.specific_data_size - 1
+        all_data = general_unpack(byte_stream, num_bytes)
+        src_path: str = all_data[0]
+        dst_path: Optional[str] = all_data[1]
+        return cls.__call__(src_path, dst_path)
+
+    def pack(self) -> bytes:
+        specific_byte_string = general_pack(self.src_path, self.dst_path)
+        return super()._pack_all(specific_byte_string)
+
+    def __eq__(self, other):
+        if super().__eq__(other) and isinstance(other, FileMetaPacket):
+            return self.src_path == other.src_path and self.dst_path == other.dst_path
+        else:
+            return False
+
+    def __repr__(self):
+        return f"{super().__repr__()} => FileMetaPacket({self.src_path}, {str(self.dst_path)})"
+
+
 packets = Ddict({
     FunctionPacket: 0x101,
     DataPacket: 0x103,
+    FileMetaPacket: 0x104
 })

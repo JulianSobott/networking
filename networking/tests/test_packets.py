@@ -10,7 +10,7 @@
 """
 import unittest
 
-from networking.Packets import Header, Packet, DataPacket, FunctionPacket
+from networking.Packets import Header, Packet, DataPacket, FunctionPacket, FileMetaPacket
 from networking.Data import ByteStream
 from networking.Logging import logger
 
@@ -46,6 +46,13 @@ class TestPackets(unittest.TestCase):
         self.helper_packet_tests(packet)
 
         packet = DataPacket(classObj=TestHeader)
+        self.helper_packet_tests(packet)
+
+    def test_file_meta_packet(self):
+        packet = FileMetaPacket(r"C:\Hello\World\src.txt", "D:/WOW/dst.txt")
+        self.helper_packet_tests(packet)
+
+        packet = FileMetaPacket(r"C:\Hello\World\src.txt")
         self.helper_packet_tests(packet)
 
 
