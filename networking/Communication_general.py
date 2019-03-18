@@ -13,6 +13,7 @@ import socket
 import time
 from typing import Tuple, List, Dict, Optional, Callable, Any, Type, Union
 
+import utils
 from networking.Logging import logger
 from networking.Packets import Packet, DataPacket, FunctionPacket, FileMetaPacket, Header, packets as packet_types
 from networking.ID_management import IDManager, remove_manager
@@ -33,7 +34,7 @@ def to_server_id(id_):
 
 
 class Communicator(threading.Thread):
-    CHUNK_SIZE = 1024
+    CHUNK_SIZE = 4096
 
     def __init__(self, address: SocketAddress, id_, socket_connection=socket.socket(), from_accept=False,
                  on_close: Optional[Callable[['Communicator'], Any]] = None, local_functions=Type['Functions']) -> None:
@@ -140,16 +141,19 @@ class Communicator(threading.Thread):
                 if possible_packet is not None:
                     return possible_packet
 
+    @utils.time_func
     def _recv_file(self, file_meta_packet: FileMetaPacket, byte_stream: ByteStream) -> None:
-        remaining_bytes = file_meta_packet.file_size
         file_path = file_meta_packet.dst_path
+        existing_bytes = byte_stream.next_all_bytes()
         with open(file_path, "wb+") as file:
-            file.write(byte_stream.next_all_bytes())
+            file.write(existing_bytes)
+        remaining_bytes = file_meta_packet.file_size - len(existing_bytes)
         with open(file_path, "ab") as file:
             while remaining_bytes > 0:
                 num_next_bytes = min(self.CHUNK_SIZE, remaining_bytes)
-                remaining_bytes -= num_next_bytes
-                file.write(self._recv_data(num_next_bytes))
+                data = self._recv_data(num_next_bytes)
+                file.write(data)
+                remaining_bytes -= len(data)
 
     def send_packet(self, packet: Packet) -> bool:
         IDManager(self._id).set_ids_of_packet(packet)
@@ -236,14 +240,15 @@ class Communicator(threading.Thread):
         data_packet = DataPacket(**ret_kwargs)
         self.send_packet(data_packet)
 
+    @utils.time_func
     def _send_file(self, file: File):
         file_meta_packet = FileMetaPacket(file.src_path, file.size, file.dst_path)
         self.send_packet(file_meta_packet)
         with open(file.src_path, "rb") as f:
-            file_data = f.read(self.CHUNK_SIZE)
+            file_data = f.read(self.CHUNK_SIZE * 2)
             while len(file_data) > 0:
-                self._send_bytes(file_data)
-                file_data = f.read(self.CHUNK_SIZE)
+                self._socket_connection.send(file_data)
+                file_data = f.read(self.CHUNK_SIZE * 2)
 
     def stop(self, is_same_thread=False) -> None:
         if self._closed:

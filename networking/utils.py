@@ -9,6 +9,9 @@
 
 """
 import json
+import threading
+from functools import wraps
+import time
 
 
 class Ddict(dict):
@@ -51,3 +54,14 @@ def dump_dict_to_json(dict_):
 
 def load_dict_from_json(json_):
     return json.loads(json_, object_hook=_hinted_tuple_hook)
+
+
+def time_func(f):
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time.time()
+        result = f(*args, **kw)
+        te = time.time()
+        print(f'func:{f.__name__} took: {te - ts} sec')
+        return result
+    return wrap
