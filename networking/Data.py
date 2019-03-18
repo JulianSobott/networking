@@ -225,6 +225,9 @@ class ByteStream:
             if self.reached_end and self.idx > self.length:
                 raise IndexError(f"Byte string ran out of scope: {self.idx} > {self.length}")
 
+    def next_all_bytes(self) -> bytes:
+        return self.next_bytes(self.remaining_length)
+
     def _inc_idx(self, amount: int) -> None:
         self.idx += amount
         self.remaining_length -= amount
@@ -240,7 +243,7 @@ class ByteStream:
 
     def __iadd__(self, other: bytes) -> 'ByteStream':
         if not isinstance(other, bytes):
-            raise TypeError
+            raise TypeError(f"{type(other)} is not type: bytes")
         self.byte_string += other
         added_length = len(other)
         self.length += added_length
@@ -254,10 +257,14 @@ class ByteStream:
 
 class File:
 
-    def __init__(self, src_path: str, dst_path: Optional[str]) -> None:
+    def __init__(self, src_path: str, dst_path: str) -> None:
         self.src_path = src_path
         self.dst_path = dst_path
         self.size = os.path.getsize(src_path)
+
+    @classmethod
+    def from_meta_packet(cls, file_meta_packet):
+        return cls(file_meta_packet.src_path, file_meta_packet.dst_path)
 
 
 def pack_int_type(int_type: int) -> bytes:

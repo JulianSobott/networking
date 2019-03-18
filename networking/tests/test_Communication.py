@@ -13,7 +13,7 @@ from networking.tests.example_functions import DummyPerson, DummyServerCommunica
 
 dummy_address = ("127.0.0.1", 5000)
 
-logger.setLevel(40)
+logger.setLevel(0)
 
 
 class CommunicationTestCase(unittest.TestCase):
@@ -204,13 +204,24 @@ class TestCommunicating(CommunicationTestCase):
                               args,
                               args)
 
+    def test_small_file(self):
+        import os
+        file_path = "std_out.txt"
+        destination_path = "new_file.txt"
+        with ClientManager(dummy_address, DummyClientCommunicator):
+            DummyServerCommunicator.connect(dummy_address)
+            file = DummyServerCommunicator.remote_functions().get_file(file_path, destination_path)
+            self.assertEqual(file.src_path, file_path)
+            self.assertEqual(file.dst_path, destination_path)
+        self.assertEqual(os.path.getsize(file_path), os.path.getsize(destination_path))
+
     def test_huge_file(self):
         import os
         file_path = "dummy.txt"
         destination_path = "new_file.txt"
         with ClientManager(dummy_address, DummyClientCommunicator):
             DummyServerCommunicator.connect(dummy_address)
-            file = DummyServerCommunicator.remote_functions(timeout=6).get_file(file_path, destination_path)
+            file = DummyServerCommunicator.remote_functions().get_file(file_path, destination_path)
             self.assertEqual(file.src_path, file_path)
             self.assertEqual(file.dst_path, destination_path)
         self.assertEqual(os.path.getsize(file_path), os.path.getsize(destination_path))

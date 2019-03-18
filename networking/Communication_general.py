@@ -83,48 +83,73 @@ class Communicator(threading.Thread):
                 return False
         return False
 
-    def _wait_for_new_input(self) -> None:
-        packet_builder = PacketBuilder()
-        with self._socket_connection:
-            while self._is_on:
-                if self._is_on and not self._is_connected:
-                    if self._keep_connection:
-                        self._connect()
-                    else:
-                        self.stop(is_same_thread=True)
-                try:
-                    chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
-                    if chunk_data == b"":
-                        logger.info("Connection reset, (%s)", str(self._address))
-                        self._is_connected = False
-                    elif self._file_receive_data[0] is not None:
-                        pass # TODO
-                    else:
-                        possible_packet = packet_builder.add_chunk(chunk_data)
-                        if possible_packet is not None:
-                            logger.info(f"New Packet at ({self._id}): {possible_packet}")
-                            if self._auto_execute_functions and isinstance(possible_packet, FunctionPacket):
-                                func_thread = FunctionExecutionThread(self._id, possible_packet, self._handle_packet)
-                                func_thread.start()
-                            else:
-                                self._packets.append(possible_packet)
+    def _recv_data(self, size: int) -> Optional[bytes]:
+        try:
+            chunk_data = self._socket_connection.recv(size)
+            if chunk_data == b"":
+                logger.info("Connection reset, (%s)", str(self._address))
+                self._is_connected = False
+            else:
+                return chunk_data
 
-                except ConnectionResetError:
-                    if self._is_on:
-                        logger.warning(f"Connection reset at ID({self._id}), ({self._address})")
-                    self._is_connected = False
+        except ConnectionResetError:
+            if self._is_on:
+                logger.warning(f"Connection reset at ID({self._id}), {self._address}")
+            self._is_connected = False
 
-                except ConnectionAbortedError:
-                    if self._is_on:
-                        logger.warning(f"Connection aborted at ID({self._id}), ({self._address})")
-                    self._is_connected = False
+        except ConnectionAbortedError:
+            if self._is_on:
+                logger.warning(f"Connection aborted at ID({self._id}), {self._address}")
+            self._is_connected = False
 
-                except OSError:
-                    if self._is_on:
-                        logger.warning("TCP connection closed while listening")
-                    self._is_connected = False
+        except OSError:
+            if self._is_on:
+                logger.warning("TCP connection closed while listening")
+            self._is_connected = False
 
-                self._exit.wait(self._time_till_next_check)
+    def _wait_for_new_input(self):
+        byte_stream = ByteStream(b'')
+        while self._is_on:
+            if self._is_on and not self._is_connected:
+                if self._keep_connection:
+                    self._connect()
+                else:
+                    self.stop(is_same_thread=True)
+            packet = self._recv_packet(byte_stream)
+            if packet is not None:
+                if isinstance(packet, FileMetaPacket):
+                    self._recv_file(packet, byte_stream)
+                    self._packets.append(packet)
+                elif self._auto_execute_functions and isinstance(packet, FunctionPacket):
+                    func_thread = FunctionExecutionThread(self._id, packet, self._handle_packet)
+                    func_thread.start()
+                else:
+                    self._packets.append(packet)
+
+    def _recv_packet(self, byte_stream: ByteStream) -> Optional[Packet]:
+        packet_builder = PacketBuilder(byte_stream)
+        while True:
+            chunk_data = self._recv_data(self.CHUNK_SIZE)
+            if chunk_data == b"" or chunk_data is None:
+                logger.info("Connection reset, (%s)", str(self._address))
+                self._is_connected = False
+                return None
+            else:
+                possible_packet = packet_builder.add_chunk(chunk_data)
+                logger.debug(possible_packet)
+                if possible_packet is not None:
+                    return possible_packet
+
+    def _recv_file(self, file_meta_packet: FileMetaPacket, byte_stream: ByteStream) -> None:
+        remaining_bytes = file_meta_packet.file_size
+        file_path = file_meta_packet.dst_path
+        with open(file_path, "wb+") as file:
+            file.write(byte_stream.next_all_bytes())
+        with open(file_path, "ab") as file:
+            while remaining_bytes > 0:
+                num_next_bytes = min(self.CHUNK_SIZE, remaining_bytes)
+                remaining_bytes -= num_next_bytes
+                file.write(self._recv_data(num_next_bytes))
 
     def send_packet(self, packet: Packet) -> bool:
         IDManager(self._id).set_ids_of_packet(packet)
@@ -176,7 +201,7 @@ class Communicator(threading.Thread):
                         self._handle_packet(next_packet)
                         return next_packet
                     elif isinstance(next_packet, FileMetaPacket):
-                        self._receive_file(next_packet)
+                        return DataPacket(**{"return": File.from_meta_packet(next_packet)})
                     # if isinstance FileMetaPacket: wait till all data is saved to file (receive_file)
                     else:
                         logger.error(f"Received not implemented Packet class: {type(next_packet)}")
@@ -201,7 +226,7 @@ class Communicator(threading.Thread):
         try:
             ret_value = self._functions.__getattr__(func)(*args, **kwargs)
             if isinstance(ret_value, File):
-                pass# TODO
+                return self._send_file(ret_value)
         except TypeError as e:
             ret_value = e
         except AttributeError as e:
@@ -212,14 +237,13 @@ class Communicator(threading.Thread):
         self.send_packet(data_packet)
 
     def _send_file(self, file: File):
-        file_meta_packet = FileMetaPacket(file.src_path, file.dst_path)
+        file_meta_packet = FileMetaPacket(file.src_path, file.size, file.dst_path)
         self.send_packet(file_meta_packet)
         with open(file.src_path, "rb") as f:
             file_data = f.read(self.CHUNK_SIZE)
             while len(file_data) > 0:
                 self._send_bytes(file_data)
                 file_data = f.read(self.CHUNK_SIZE)
-
 
     def stop(self, is_same_thread=False) -> None:
         if self._closed:
@@ -276,10 +300,11 @@ class ByteDecoder:
                 return packet
         return None
 
+
 class PacketBuilder:
 
-    def __init__(self) -> None:
-        self.byte_stream = ByteStream(b"")
+    def __init__(self, byte_stream: ByteStream) -> None:
+        self.byte_stream = byte_stream
         self.current_header: Optional[Header] = None
 
     def add_chunk(self, byte_string: bytes) -> Optional[Packet]:

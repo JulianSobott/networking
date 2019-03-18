@@ -1,4 +1,4 @@
-docs = """
+"""
 @author: Julian Sobott
 @created: 13.11.2018
 @brief: Handles ids for proper network communication
@@ -22,7 +22,7 @@ When a communicator is closed call remove_manger(), with the communicator ID
 from typing import List, Optional, Dict, Tuple
 
 from networking.Logging import logger
-from networking.Packets import FunctionPacket, DataPacket, Packet
+from networking.Packets import FunctionPacket, DataPacket, FileMetaPacket, Packet
 
 __all__ = ["IDManager", "remove_manager"]
 
@@ -62,7 +62,7 @@ class IDManager(metaclass=IDManagers):
         global_id = self._next_global_id
         if isinstance(packet, FunctionPacket):
             func_id = self._is_function_packet()
-        elif isinstance(packet, DataPacket):
+        elif isinstance(packet, DataPacket) or isinstance(packet, FileMetaPacket):
             func_id = self._is_data_packet()
         else:
             logger.error("Unknown packet_class (%s)", type(packet).__name__)
@@ -76,7 +76,7 @@ class IDManager(metaclass=IDManagers):
         self._next_global_id = packet.header.id_container.global_id + 1
         if isinstance(packet, FunctionPacket):
             self._is_function_packet()
-        elif isinstance(packet, DataPacket):
+        elif isinstance(packet, DataPacket) or isinstance(packet, FileMetaPacket):
             self._is_data_packet()
         else:
             logger.error("Unknown packet_class (%s)", type(packet).__name__)
