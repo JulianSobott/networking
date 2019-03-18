@@ -49,10 +49,10 @@ class TestPackets(unittest.TestCase):
         self.helper_packet_tests(packet)
 
     def test_file_meta_packet(self):
-        packet = FileMetaPacket(r"C:\Hello\World\src.txt", "D:/WOW/dst.txt")
+        packet = FileMetaPacket(r"C:\Hello\World\src.txt", 0, "D:/WOW/dst.txt")
         self.helper_packet_tests(packet)
 
-        packet = FileMetaPacket(r"C:\Hello\World\src.txt")
+        packet = FileMetaPacket(r"C:\Hello\World\src.txt", 0)
         self.helper_packet_tests(packet)
 
 

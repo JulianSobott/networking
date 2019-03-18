@@ -200,7 +200,7 @@ class FileMetaPacket(Packet):
         all_data = general_unpack(byte_stream, num_bytes)
         src_path: str = all_data[0]
         dst_path: Optional[str] = all_data[1]
-        size: int = all_data[1]
+        size: int = all_data[2]
         return cls.__call__(src_path, size, dst_path)
 
     def pack(self) -> bytes:
