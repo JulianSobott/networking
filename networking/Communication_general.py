@@ -21,8 +21,8 @@ from networking.Data import ByteStream, File
 
 SocketAddress = Tuple[str, int]
 
-CLIENT_ID_END = 0
-SERVER_ID_END = 30
+CLIENT_ID_END = 30
+SERVER_ID_END = 0   # Max 30 servers
 
 
 def to_client_id(id_):
