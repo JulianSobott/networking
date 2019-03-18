@@ -21,8 +21,9 @@ Data Types that can be packed (and their limitations):
 @TODO_:
 
 """
+import os
 import pickle
-from typing import Tuple, Any
+from typing import Tuple, Any, Optional
 
 from networking.utils import Ddict, load_dict_from_json, dump_dict_to_json
 from networking.Logging import logger
@@ -249,6 +250,14 @@ class ByteStream:
 
     def __repr__(self):
         return str(self.byte_string[:self.idx]) + "|" + str(self.byte_string[self.idx:])
+
+
+class File:
+
+    def __init__(self, src_path: str, dst_path: Optional[str]) -> None:
+        self.src_path = src_path
+        self.dst_path = dst_path
+        self.size = os.path.getsize(src_path)
 
 
 def pack_int_type(int_type: int) -> bytes:

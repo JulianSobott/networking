@@ -204,6 +204,17 @@ class TestCommunicating(CommunicationTestCase):
                               args,
                               args)
 
+    def test_huge_file(self):
+        import os
+        file_path = "dummy.txt"
+        destination_path = "new_file.txt"
+        with ClientManager(dummy_address, DummyClientCommunicator):
+            DummyServerCommunicator.connect(dummy_address)
+            file = DummyServerCommunicator.remote_functions(timeout=6).get_file(file_path, destination_path)
+            self.assertEqual(file.src_path, file_path)
+            self.assertEqual(file.dst_path, destination_path)
+        self.assertEqual(os.path.getsize(file_path), os.path.getsize(destination_path))
+
     def test_func_in_func(self):
         self.helper_test_func(DummyServerCommunicator.remote_functions(timeout=2).func_in_func,
                               (0,),

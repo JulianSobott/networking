@@ -16,7 +16,7 @@ GeneralPacket:
     Header:
         - PacketType (Function, Data)
         - ID's
-        - specific data size
+        - specific data file_size
     Specific Data:
 
 @external_use:
@@ -188,10 +188,11 @@ class FunctionPacket(Packet):
 
 class FileMetaPacket(Packet):
 
-    def __init__(self, src_path: str, dst_path: Optional[str] = None):
+    def __init__(self, src_path: str, size: int, dst_path: Optional[str] = None):
         super().__init__(self)
         self.src_path = src_path
         self.dst_path = dst_path
+        self.file_size = size
 
     @classmethod
     def from_bytes(cls, header: Header, byte_stream: ByteStream) -> 'FileMetaPacket':
@@ -199,20 +200,22 @@ class FileMetaPacket(Packet):
         all_data = general_unpack(byte_stream, num_bytes)
         src_path: str = all_data[0]
         dst_path: Optional[str] = all_data[1]
-        return cls.__call__(src_path, dst_path)
+        size: int = all_data[1]
+        return cls.__call__(src_path, size, dst_path)
 
     def pack(self) -> bytes:
-        specific_byte_string = general_pack(self.src_path, self.dst_path)
+        specific_byte_string = general_pack(self.src_path, self.dst_path, self.file_size)
         return super()._pack_all(specific_byte_string)
 
     def __eq__(self, other):
         if super().__eq__(other) and isinstance(other, FileMetaPacket):
-            return self.src_path == other.src_path and self.dst_path == other.dst_path
+            return self.src_path == other.src_path and self.dst_path == other.dst_path \
+                   and self.file_size == other.file_size
         else:
             return False
 
     def __repr__(self):
-        return f"{super().__repr__()} => FileMetaPacket({self.src_path}, {str(self.dst_path)})"
+        return f"{super().__repr__()} => FileMetaPacket({self.src_path}, {self.file_size}, {str(self.dst_path)})"
 
 
 packets = Ddict({

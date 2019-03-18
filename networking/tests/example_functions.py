@@ -57,6 +57,10 @@ class _DummyServerFunctions(net.ServerFunctions):
     def client_faculty(number: int) -> int:
         return client_faculty(number)
 
+    @staticmethod
+    def get_file(file_path: str, destination_path: str) -> net.File:
+        return get_file(file_path, destination_path)
+
 
 class _DummyClientFunctions(net.ServerFunctions):
     @staticmethod
@@ -180,4 +184,8 @@ def client_faculty(number: int) -> int:
     if number <= 1:
         return number
     return number * DummyServerCommunicator.remote_functions.server_faculty(number - 1)
+
+
+def get_file(file_path: str, destination_path: str) -> net.File:
+    return net.File(file_path, destination_path)
 

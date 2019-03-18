@@ -14,9 +14,9 @@ import time
 from typing import Tuple, List, Dict, Optional, Callable, Any, Type, Union
 
 from networking.Logging import logger
-from networking.Packets import Packet, DataPacket, FunctionPacket, Header
+from networking.Packets import Packet, DataPacket, FunctionPacket, FileMetaPacket, Header, packets as packet_types
 from networking.ID_management import IDManager, remove_manager
-from networking.Data import ByteStream
+from networking.Data import ByteStream, File
 
 SocketAddress = Tuple[str, int]
 
@@ -97,6 +97,8 @@ class Communicator(threading.Thread):
                     if chunk_data == b"":
                         logger.info("Connection reset, (%s)", str(self._address))
                         self._is_connected = False
+                    elif self._file_receive_data[0] is not None:
+                        pass # TODO
                     else:
                         possible_packet = packet_builder.add_chunk(chunk_data)
                         if possible_packet is not None:
@@ -125,25 +127,30 @@ class Communicator(threading.Thread):
                 self._exit.wait(self._time_till_next_check)
 
     def send_packet(self, packet: Packet) -> bool:
-        # TODO: add type hinting when implementation is finished
+        IDManager(self._id).set_ids_of_packet(packet)
+        send_data = packet.pack()
+        successfully_sent = self._send_bytes(send_data)
+        if not successfully_sent:
+            logger.error("Could not send packet: %s", str(packet))
+        return successfully_sent
+
+    def _send_bytes(self, byte_string: bytes) -> bool:
         if not self._is_connected:
             self._connect(timeout=2)
         try:
-            IDManager(self._id).set_ids_of_packet(packet)
-            send_data = packet.pack()
             total_sent = 0
-            data_size = len(send_data)
+            data_size = len(byte_string)
             while total_sent < data_size:
-                sent = self._socket_connection.send(send_data[total_sent:])
+                sent = self._socket_connection.send(byte_string[total_sent:])
                 if sent == 0:
-                    logger.warning("Connection closed. Could not send packet")
+                    logger.warning(f"Could not send bytes {byte_string}")
                     self._is_connected = False
                     return False
                 total_sent += sent
             self._is_connected = True
             return total_sent == data_size
         except OSError:
-            logger.error("Could not send packet: %s", str(packet))
+            logger.error(f"Could not send bytes {byte_string}")
             return False
 
     def wait_for_response(self):
@@ -165,10 +172,12 @@ class Communicator(threading.Thread):
                     if isinstance(next_packet, FunctionPacket):
                         # execute and keep waiting for data
                         self._handle_packet(next_packet)
-                        next_global_id = IDManager(self._id).get_next_outer_id()
                     elif isinstance(next_packet, DataPacket):
                         self._handle_packet(next_packet)
                         return next_packet
+                    elif isinstance(next_packet, FileMetaPacket):
+                        self._receive_file(next_packet)
+                    # if isinstance FileMetaPacket: wait till all data is saved to file (receive_file)
                     else:
                         logger.error(f"Received not implemented Packet class: {type(next_packet)}")
 
@@ -191,6 +200,8 @@ class Communicator(threading.Thread):
         kwargs = packet.kwargs
         try:
             ret_value = self._functions.__getattr__(func)(*args, **kwargs)
+            if isinstance(ret_value, File):
+                pass# TODO
         except TypeError as e:
             ret_value = e
         except AttributeError as e:
@@ -199,6 +210,16 @@ class Communicator(threading.Thread):
         ret_kwargs = {"return": ret_value}
         data_packet = DataPacket(**ret_kwargs)
         self.send_packet(data_packet)
+
+    def _send_file(self, file: File):
+        file_meta_packet = FileMetaPacket(file.src_path, file.dst_path)
+        self.send_packet(file_meta_packet)
+        with open(file.src_path, "rb") as f:
+            file_data = f.read(self.CHUNK_SIZE)
+            while len(file_data) > 0:
+                self._send_bytes(file_data)
+                file_data = f.read(self.CHUNK_SIZE)
+
 
     def stop(self, is_same_thread=False) -> None:
         if self._closed:
@@ -226,6 +247,35 @@ class Communicator(threading.Thread):
         return self._id
 
 
+class ByteDecoder:
+
+    def __init__(self):
+        self._packet_builder = PacketBuilder()
+        self._file_receiver = FileReceiver()
+        self.byte_stream = ByteStream(b"")
+        self.current_header: Optional[Header] = None
+        self.receiving_file = False
+
+    def add_chunk(self, byte_string: bytes) -> Optional[Packet]:
+        if self.receiving_file:
+            file_data_size = self._file_receiver.file_size - self._file_receiver.received_bytes
+            self._file_receiver.add_file_data(byte_string[:file_data_size])
+            byte_string = byte_string[file_data_size:]
+            if len(byte_string) > 0:
+                self.receiving_file = False
+        self.byte_stream += byte_string
+        if not self.receiving_file:
+            if self.current_header is None and self.byte_stream.length >= Header.LENGTH_BYTES:
+                self.current_header = Header.from_bytes(self.byte_stream)
+            if self.current_header and self.byte_stream.remaining_length >= self.current_header.specific_data_size:
+                packet = Packet.from_bytes(self.current_header, self.byte_stream)
+                if isinstance(packet, FileMetaPacket):
+                    self.receiving_file = True
+                self.byte_stream.remove_consumed_bytes()
+                self.current_header = None
+                return packet
+        return None
+
 class PacketBuilder:
 
     def __init__(self) -> None:
@@ -242,6 +292,23 @@ class PacketBuilder:
             self.current_header = None
             return packet
         return None
+
+
+class FileReceiver:
+
+    def __init__(self) -> None:
+        self.receiving_file = False
+        self.received_bytes = 0
+        self.file_size = 0
+        self.dst_path = ""
+
+    def set_file_meta_data(self, meta_packet: FileMetaPacket):
+        self.file_size = meta_packet.file_size
+        self.dst_path = meta_packet.dst_path
+
+    def add_file_data(self, file_data: bytes) -> None:
+        with open(self.dst_path, "wb+") as f:
+            f.write(file_data)
 
 
 class MetaFunctionCommunicator(type):
