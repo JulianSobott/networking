@@ -1,23 +1,44 @@
 """
-@author: Julian Sobott
-@created: 13.11.2018
-@brief: Handles ids for proper network communication
-@description:
+:module: networking.ID_management
+:author: Julian Sobott
+:created: 13.11.2018
+:synopsis: Handles ids for proper network communication
+
 Each packet has 2 ids: function_id - global_id
-function_id: increased for each new function. FunctionPacket and DataPacket have the same function_id
-        # Which data_packet belongs to which function
-global_id: increased for each new packet.
-        #See which packet is next. Watch packet loss
 
-IDManagers is a metaclass to deliver multiple IDManagers for multiple Communicators
+- function_id: increased for each new function. FunctionPacket and DataPacket have the same function_id
 
-@external_use:
-Call IDManager(ID) to work with it.
-ID is the ID of the communicator. (per client one ID)
+        Which data_packet belongs to which function
 
-When a communicator is closed call remove_manger(), with the communicator ID
+- global_id: increased for each new packet.
 
-@internal_use:
+        See which packet is next. Watch packet loss
+
+External use
+-------------
+
+Call :class:`IDManager(ID)` to work with it. ID is the ID of the communicator (per client one ID). You don't need
+to store an object of :class:`IDManager`, because this is handled by its metaclass. When a communicator is closed
+call :func:`remove_manger`, with the communicator ID.
+
+public functions
+----------------
+
+.. autofunction:: remove_manager
+
+public classes
+--------------
+
+.. autoclass:: IDManager
+    :members:
+    :undoc-members:
+
+private classes
+----------------
+
+.. autoclass:: MetaIDManager
+    :members:
+
 """
 from typing import List, Optional, Dict, Tuple
 
@@ -27,29 +48,24 @@ from networking.Packets import FunctionPacket, DataPacket, FileMetaPacket, Packe
 __all__ = ["IDManager", "remove_manager"]
 
 
-class IDManagers(type):
-    """Each Communicator has its own ID. With this ID it gets its appropriate IDManager"""
+class MetaIDManager(type):
+    """MetaIDManager is a metaclass to deliver multiple IDManagers for multiple Communicators. Each Communicator has
+    its own ID. With this ID it gets its appropriate IDManager"""
     _instances: Dict[int, 'IDManager'] = {}
 
     def __call__(cls, *args, **kwargs):
         id_ = args[0]
         if id_ not in cls._instances:
-            IDManagers._instances[id_] = super(IDManagers, cls).__call__(id_)
-        return IDManagers._instances[id_]
+            MetaIDManager._instances[id_] = super(MetaIDManager, cls).__call__(id_)
+        return MetaIDManager._instances[id_]
 
     @staticmethod
-    def remove(id_):
-        IDManagers._instances.pop(id_)
+    def remove(id_: int):
+        MetaIDManager._instances.pop(id_)
 
 
-class IDManager(metaclass=IDManagers):
-    """ Sets IDs for each packet
-        Each packet has 2 ids: function_id - global_id
-        function_id: increased for each new function. FunctionPacket and DataPacket have the same function_id
-            # Which data_packet belongs to which function
-        global_id: increased for each new packet.
-            #See which packet is next. Watch packet loss
-    """
+class IDManager(metaclass=MetaIDManager):
+    """Sets IDs for each packet."""
 
     def __init__(self, id_: int) -> None:
         self.id = id_
@@ -58,7 +74,7 @@ class IDManager(metaclass=IDManagers):
         self._function_stack: List[int] = []
 
     def set_ids_of_packet(self, packet: Packet) -> Optional[Packet]:
-        """set ids of packet and adjust internal state"""
+        """Set ids of packet and adjust internal state"""
         global_id = self._next_global_id
         if isinstance(packet, FunctionPacket):
             func_id = self._is_function_packet()
@@ -73,6 +89,7 @@ class IDManager(metaclass=IDManagers):
         return packet
 
     def update_ids_by_packet(self, packet: Packet) -> None:
+        """Called every time a new packet arrives."""
         self._next_global_id = packet.header.id_container.global_id + 1
         if isinstance(packet, FunctionPacket):
             self._is_function_packet()
@@ -108,6 +125,6 @@ class IDManager(metaclass=IDManagers):
 def remove_manager(id_: int) -> None:
     """Called when a communicator is stopped. So its ID Manager isn´t needed anymore"""
     try:
-        IDManagers.remove(id_)
+        MetaIDManager.remove(id_)
     except KeyError:
         pass
