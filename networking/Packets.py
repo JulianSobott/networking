@@ -71,17 +71,14 @@ private constants
 
     Ddict that have for every Packetclass a unique id
 """
-print("packets")
-print(__package__)
 from typing import Union, Dict, Any, Callable, Optional
 
 from networking.utils import Ddict
 from networking.Logging import logger
 from networking.Data import pack_int_type, unpack_int_type, NUM_TYPE_BYTES, \
     general_unpack, general_pack, ByteStream, pack_int
-#import networking.ID_management.IDContainer as IDContainer
 
-IDContainer = None
+
 class Header:
     """Every packet has a header. Defines meta data for each packet, that is necessary for network communication.
 
@@ -91,13 +88,14 @@ class Header:
     """
     LENGTH_BYTES = 19
 
-    def __init__(self, id_container: IDContainer, packet_type: int, specific_data_size: int) -> None:
+    def __init__(self, id_container: 'IDContainer', packet_type: int, specific_data_size: int) -> None:
         self.id_container = id_container
         self.packet_type = packet_type
         self.specific_data_size = specific_data_size
 
     @classmethod
     def from_packet(cls, packet: 'Packet') -> 'Header':
+        from networking.ID_management import IDContainer
         packet_type = packets[packet.__class__]
         id_container = IDContainer.default_init()
         specific_data_size = 0
@@ -105,6 +103,7 @@ class Header:
 
     @classmethod
     def from_bytes(cls, byte_stream: ByteStream) -> 'Header':
+        from networking.ID_management import IDContainer
         id_container = IDContainer.from_bytes(byte_stream)
         packet_type = unpack_int_type(byte_stream.next_bytes(NUM_TYPE_BYTES))
         specific_data_size = byte_stream.next_int()
