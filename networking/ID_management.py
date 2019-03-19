@@ -33,6 +33,11 @@ public classes
     :members:
     :undoc-members:
 
+
+.. autoclass:: IDContainer
+    :members:
+    :undoc-members:
+
 private classes
 ----------------
 
@@ -40,12 +45,14 @@ private classes
     :members:
 
 """
+print(__package__)
 from typing import List, Optional, Dict, Tuple
 
+from Data import NUM_INT_BYTES, NUM_TYPE_BYTES, pack_int
 from networking.Logging import logger
 from networking.Packets import FunctionPacket, DataPacket, FileMetaPacket, Packet
 
-__all__ = ["IDManager", "remove_manager"]
+__all__ = ["IDManager", "remove_manager", "IDContainer"]
 
 
 class MetaIDManager(type):
@@ -128,3 +135,49 @@ def remove_manager(id_: int) -> None:
         MetaIDManager.remove(id_)
     except KeyError:
         pass
+
+
+class IDContainer:
+    """Stores the id`s of a packet. Packs and unpacks itself at the send process.
+
+    Every packet has 2 id`s. A :attr:`function_id`. This one stores the function it belongs to. This way return
+    packets can be unambiguously matched to the proper function. The second id is the :attr:`global_id`. It is
+    incremented for each packet. This way packet loss can be detected and packets are handled in the correct order.
+    """
+    TOTAL_BYTE_LENGTH = 3 * NUM_INT_BYTES + 3 * NUM_TYPE_BYTES
+
+    def __init__(self, function_id: int, outer_id: int) -> None:
+        self.function_id = function_id
+        self.global_id = outer_id
+
+    @classmethod
+    def default_init(cls):
+        """Set id`s that must be changed at sending."""
+        return cls.__call__(-1, -1)
+
+    def pack(self) -> bytes:
+        byte_string = pack_int(self.function_id)
+        byte_string += pack_int(self.global_id)
+        return byte_string
+
+    @classmethod
+    def from_bytes(cls, byte_stream: 'ByteStream') -> 'IDContainer':
+        function_id = byte_stream.next_int()
+        outer_id = byte_stream.next_int()
+        return cls.__call__(function_id, outer_id)
+
+    def set_ids(self, function_id: int, outer_id: int):
+        self.function_id = function_id
+        self.global_id = outer_id
+
+    def get_ids(self) -> Tuple[int, int]:
+        return self.function_id, self.global_id
+
+    def __repr__(self):
+        return f"IDContainer({str(self.function_id)}, {str(self.global_id)})"
+
+    def __eq__(self, other):
+        if not isinstance(other, IDContainer):
+            return False
+        return (self.function_id == other.function_id and
+                self.global_id == other.global_id)

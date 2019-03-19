@@ -31,15 +31,15 @@ New <cls>_packet:
     implement: pack, unpack, __eq__, __str__
     add to packets
 """
-from enum import Enum
-import os
-import pickle
+print("packets")
+print(__package__)
 from typing import Union, Dict, Any, Callable, Optional
 
 from networking.utils import Ddict
 from networking.Logging import logger
-from networking.Data import IDContainer, pack_int_type, unpack_int_type, NUM_INT_BYTES, BYTEORDER, NUM_TYPE_BYTES, \
-    general_unpack, general_pack, ByteStream, pack_int, ENCODING
+from networking.Data import pack_int_type, unpack_int_type, NUM_TYPE_BYTES, \
+    general_unpack, general_pack, ByteStream, pack_int
+import networking.ID_management.IDContainer as IDContainer
 
 
 class Header:
