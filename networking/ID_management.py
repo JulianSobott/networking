@@ -45,7 +45,6 @@ private classes
     :members:
 
 """
-print(__package__)
 from typing import List, Optional, Dict, Tuple
 
 from Data import NUM_INT_BYTES, NUM_TYPE_BYTES, pack_int

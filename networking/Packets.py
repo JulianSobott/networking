@@ -29,16 +29,47 @@ Every packet class can convert its data to bytes, that can be send over the sock
 External_use:
 --------------
 
-packet = <cls>Packet(args)
-byte_string = packet.pack()
-same_packet = Packet.unpack(byte_string)
+.. code-block:: python
 
+    packet_one = <cls>Packet(*args, **kwargs) # Look at the individual class for exact signature
+    byte_string = packet_one.pack()
+    byte_stream = ByteStream(byte_string)
+    header = Header.from_bytes(byte_stream)
+    packet_two = Packet.from_bytes(header, byte_stream)
+    self.assertEqual(packet_one, packet_two)
 
-@internal_use:
-New <cls>_packet:
-    extend from packet
-    implement: pack, unpack, __eq__, __str__
-    add to packets
+public classes
+-----------------
+
+.. autoclass:: Header
+    :members:
+    :undoc-members:
+
+.. autoclass:: Packet
+    :members:
+    :undoc-members:
+
+.. autoclass:: FunctionPacket
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. autoclass:: DataPacket
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. autoclass:: FileMetaPacket
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+private constants
+--------------------
+
+.. autodata:: packets
+
+    Ddict that have for every Packetclass a unique id
 """
 print("packets")
 print(__package__)
@@ -48,10 +79,16 @@ from networking.utils import Ddict
 from networking.Logging import logger
 from networking.Data import pack_int_type, unpack_int_type, NUM_TYPE_BYTES, \
     general_unpack, general_pack, ByteStream, pack_int
-import networking.ID_management.IDContainer as IDContainer
+#import networking.ID_management.IDContainer as IDContainer
 
-
+IDContainer = None
 class Header:
+    """Every packet has a header. Defines meta data for each packet, that is necessary for network communication.
+
+    :ivar id_container:
+    :ivar packet_type:
+    :ivar specific_data_size:
+    """
     LENGTH_BYTES = 19
 
     def __init__(self, id_container: IDContainer, packet_type: int, specific_data_size: int) -> None:
@@ -95,14 +132,19 @@ class Header:
 
 
 class Packet:
+    """Abstract super class for all packet classes. A Packet is used to pack and unpack data, to send it over a
+    tcp-connection.
+    :ivar header:
+    """
 
     def __init__(self, packet: Union['FunctionPacket', 'DataPacket', 'FileMetaPacket']) -> None:
         self.header = Header.from_packet(packet)
 
-    def pack(self):
-        pass
+    def pack(self) -> bytes:
+        raise NotImplementedError()
 
-    def _pack_all(self, specific_data_bytes) -> bytes:
+    def _pack_all(self, specific_data_bytes: bytes) -> bytes:
+        """Takes in the packed data from the child-class and creates a fully packed packet from it. Adds header."""
         byte_string = b""
         data_length = len(specific_data_bytes)
         byte_string += self.header.pack(data_length)
@@ -110,7 +152,8 @@ class Packet:
         return byte_string
 
     @classmethod
-    def from_bytes(cls, header: Header, byte_stream: ByteStream) -> Union['FunctionPacket', 'DataPacket', 'FileMetaPacket']:
+    def from_bytes(cls, header: Header, byte_stream: ByteStream) -> \
+            Union['FunctionPacket', 'DataPacket', 'FileMetaPacket']:
         if header.packet_type not in packets.values():
             raise ValueError("Unknown packet ID: (" + str(header.packet_type) + ")")
         packet = packets[header.packet_type].from_bytes(header, byte_stream)
@@ -132,7 +175,9 @@ class Packet:
 
 
 class DataPacket(Packet):
-    """Packet to send named data"""
+    """Packet to send named data.
+
+    :ivar data: dict with all data."""
 
     def __init__(self, **kwargs) -> None:
         super().__init__(self)
@@ -161,7 +206,12 @@ class DataPacket(Packet):
 
 
 class FunctionPacket(Packet):
+    """Packet, that stores the function name, and its args. Used to transmit function calls over the network.
 
+    :ivar function_name:
+    :ivar args:
+    :ivar kwargs:
+    """
     def __init__(self, func: Union[Callable, str], *args, **kwargs) -> None:
         super().__init__(self)
         if type(func) is str:
@@ -196,7 +246,13 @@ class FunctionPacket(Packet):
 
 
 class FileMetaPacket(Packet):
+    """Packet that is necessary when files should be sent over the network. Because files may be very big they dont
+    want to be packed in one data packet. So to send a file there is the FileMetaClass necessary.
 
+    :ivar src_path: Path where the file is currently located at the sender.
+    :ivar dst_path: Path where the file shall be copied to at the receiver.
+    :ivar file_size:
+    """
     def __init__(self, src_path: str, size: int, dst_path: Optional[str] = None):
         super().__init__(self)
         self.src_path = src_path
