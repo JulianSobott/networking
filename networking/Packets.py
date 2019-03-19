@@ -1,26 +1,35 @@
 """
-@author: Julian Sobott
-@brief:
-@description:
+:module: networking.Packets
+:synopsis: Provides classes that are used to send data over the network. The data is packed into packets.
+:author: Julian Sobott
 
-all available packets:
--FunctionPacket:
--DataPacket:
+Packets:
+*********
+
+- `FunctionPacket`: Sends function calls
+- `DataPacket`: Sends return messages
+- `FileMetaPacket`: Sends file meta data that is needed, when files are transmitted
+
+Every packet class can convert its data to bytes, that can be send over the socket and can convert it back.
+
+**General packet structure:**
+
+- Header:
+    - PacketType (Function, Data, FileMeta)
+    - ID's
+    - specific data size
+- Specific Data: (Individual for each packet class
+
+**General packet byte string:**
+
+<function_id><global_id><packet_cls_id><specific_data_len><specific_packet_data>
 
 
-general packet byte string:
-<packet_byte_string_len><function_id><global_id><packet_cls_id><specific_packet_data>
 
+External_use:
+--------------
 
-GeneralPacket:
-    Header:
-        - PacketType (Function, Data)
-        - ID's
-        - specific data file_size
-    Specific Data:
-
-@external_use:
-packet = <cls>_packet(args)
+packet = <cls>Packet(args)
 byte_string = packet.pack()
 same_packet = Packet.unpack(byte_string)
 
