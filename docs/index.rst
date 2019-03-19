@@ -15,6 +15,7 @@ Welcome to networking's documentation!
    external/Project_structures
    external/Checklist
    external/Functions
+   internal/index
 
 
 This tool abstracts network communication to a level, where the end user don`t has to care about

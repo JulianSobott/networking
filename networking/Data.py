@@ -1,29 +1,47 @@
 """
-@author: Julian Sobott
-@created: 19.10.2018
-@brief: Handling data for transmitting over network
-@description:
+:module: networking.Data
+:synopsis: Lowest level module, that manages important data for packets, mostly in bytes.
+:author: Julian Sobott
 
-Data Types that can be packed (and their limitations):
-    int: 4 bytes
-    float: None known
-    str: max length ~2**32 (at larger strings the PC runs out of RAM and crashes)
-    dict: None known
-    tuple: None known
-    bytes: None known
-    bool: None
-    NoneType: None
+public functions
+----------------
 
-@external_use:
+.. autofunction:: general_pack
 
-@internal_use:
+.. autofunction:: general_unpack
 
-@TODO_:
+.. autofunction:: pack_int_type
+
+.. autofunction:: unpack_int_type
+
+.. autofunction:: pack_int
+
+public classes
+--------------
+
+.. autoclass:: IDContainer
+    :members:
+    :undoc-members:
+
+.. autoclass:: ByteStream
+    :members:
+    :undoc-members:
+
+.. autoclass:: File
+    :members:
+    :undoc-members:
+
+private functions
+-----------------
+
+.. autofunction:: _pack
+
+.. autofunction:: _unpack
 
 """
 import os
 import pickle
-from typing import Tuple, Any, Optional
+from typing import Tuple, Any, Optional, Union
 
 from networking.utils import Ddict, load_dict_from_json, dump_dict_to_json
 from networking.Logging import logger
@@ -32,7 +50,6 @@ NUM_TYPE_BYTES = 3
 ENCODING = "utf-8"
 BYTEORDER = "big"
 NUM_INT_BYTES = 4
-
 
 types = Ddict({
     int:    0x001,
@@ -48,6 +65,7 @@ types = Ddict({
 
 
 def general_pack(*args) -> bytes:
+    """Converts all args into a bytes string. If there are non builtin data types pickle is taken for converting."""
     try:
         specific_byte_string = b"0"
         specific_byte_string += _pack(*args)
@@ -58,18 +76,22 @@ def general_pack(*args) -> bytes:
 
 
 def general_unpack(byte_stream: 'ByteStream', num_bytes=None) -> tuple:
-        uses_pickle = byte_stream.next_bytes(1)
-        if str(uses_pickle, ENCODING) == "1":
-            num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes
-            bytes_string = byte_stream.next_bytes(num_bytes)
-            data = pickle.loads(bytes_string)
-        else:
-            all_data = _unpack(byte_stream)
-            data = all_data
-        return data
+    """Take in a bytestream, with the bytes string from :func:`general_pack`, and converts it back into a tuple with
+    all args."""
+    uses_pickle = byte_stream.next_bytes(1)
+    if str(uses_pickle, ENCODING) == "1":
+        num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes
+        bytes_string = byte_stream.next_bytes(num_bytes)
+        data = pickle.loads(bytes_string)
+    else:
+        all_data = _unpack(byte_stream)
+        data = all_data
+    return data
 
 
 def _pack(*args) -> bytes:
+    """Converts all args into a bytes string, like :func:`pickle.dumps`. It only supports the builtin data types.
+    See the `types` variable at the top of this module for all supported types."""
     byte_string = b""
 
     for value in args:
@@ -118,7 +140,8 @@ def _pack(*args) -> bytes:
     return byte_string
 
 
-def _unpack(bytes_) -> tuple:
+def _unpack(bytes_: Union[bytes, 'ByteStream']) -> tuple:
+    """Converts back a bytes like object to its original objects"""
     if isinstance(bytes_, bytes):
         byte_stream = ByteStream(bytes_)
     else:
@@ -164,7 +187,12 @@ def _unpack(bytes_) -> tuple:
 
 
 class IDContainer:
+    """Stores the id`s of a packet. Packs and unpacks itself at the send process.
 
+    Every packet has 2 id`s. A :attr:`function_id`. This one stores the function it belongs to. This way return
+    packets can be unambiguously matched to the proper function. The second id is the :attr:`global_id`. It is
+    incremented for each packet. This way packet loss can be detected and packets are handled in the correct order.
+    """
     TOTAL_BYTE_LENGTH = 3 * NUM_INT_BYTES + 3 * NUM_TYPE_BYTES
 
     def __init__(self, function_id: int, outer_id: int) -> None:
@@ -173,6 +201,7 @@ class IDContainer:
 
     @classmethod
     def default_init(cls):
+        """Set id`s that must be changed at sending."""
         return cls.__call__(-1, -1)
 
     def pack(self) -> bytes:
@@ -204,7 +233,8 @@ class IDContainer:
 
 
 class ByteStream:
-
+    """This class utilises the bytes object. Among other things, it stores the bytes string and the idx. All `next`
+    functions move the idx."""
     def __init__(self, byte_string: bytes) -> None:
         self.byte_string = byte_string
         self.idx = 0
@@ -213,6 +243,7 @@ class ByteStream:
         self.reached_end = self.remaining_length <= 0
 
     def next_int(self) -> int:
+        """Converts the next bytes into an integer."""
         byte_string = self.next_bytes(NUM_INT_BYTES)
         return int.from_bytes(byte_string, BYTEORDER, signed=True)
 
@@ -235,6 +266,7 @@ class ByteStream:
             self.reached_end = True
 
     def remove_consumed_bytes(self) -> None:
+        """Deletes all bytes, that are before the idx. Resets all values to fit the new bytes string"""
         self.byte_string = self.byte_string[self.idx:]
         self.length = len(self.byte_string)
         self.remaining_length = self.length
@@ -256,7 +288,8 @@ class ByteStream:
 
 
 class File:
-
+    """This class represents a file that should be sent. If a file is to be sent, an object of this class shall be
+    sent with the proper paths. This internally sends the file."""
     def __init__(self, src_path: str, dst_path: str) -> None:
         self.src_path = src_path
         self.dst_path = dst_path
@@ -268,13 +301,16 @@ class File:
 
 
 def pack_int_type(int_type: int) -> bytes:
+    """Packs a type described as an integer into bytes"""
     return int.to_bytes(int_type, NUM_TYPE_BYTES, BYTEORDER)
 
 
 def unpack_int_type(full_byte_string: bytes) -> int:
+    """Unpacks bytes into a type described as an integer"""
     return int.from_bytes(full_byte_string[:NUM_TYPE_BYTES], BYTEORDER)
 
 
 def pack_int(num: int) -> bytes:
+    """Packs any integer number into bytes"""
     return int.to_bytes(num, NUM_INT_BYTES, BYTEORDER, signed=True)
 
