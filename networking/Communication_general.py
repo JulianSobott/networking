@@ -132,11 +132,7 @@ class Communicator(threading.Thread):
                                  f"Got instead: {actual_outer_id}")
                     # TODO: handle (if possible)
                 else:
-                    if isinstance(next_packet, FunctionPacket):
-                        # TODO: remove this
-                        """execute and keep waiting for data"""
-                        self._handle_packet(next_packet)
-                    elif isinstance(next_packet, DataPacket):
+                    if isinstance(next_packet, DataPacket):
                         self._handle_packet(next_packet)
                         return next_packet
                     elif isinstance(next_packet, FileMetaPacket):
@@ -192,8 +188,7 @@ class Communicator(threading.Thread):
                 if isinstance(packet, FileMetaPacket):
                     self._recv_file(packet, byte_stream)
                     self._packets.append(packet)
-                # TODO: always execute packet
-                elif self._auto_execute_functions and isinstance(packet, FunctionPacket):
+                elif isinstance(packet, FunctionPacket):
                     func_thread = FunctionExecutionThread(self._id, packet, self._handle_packet)
                     func_thread.start()
                 else:
@@ -258,18 +253,9 @@ class Communicator(threading.Thread):
         if not self._is_connected:
             self._connect(timeout=2)
         try:
-            total_sent = 0
-            data_size = len(byte_string)
-            # TODO: change to sendall
-            while total_sent < data_size:
-                sent = self._socket_connection.send(byte_string[total_sent:])
-                if sent == 0:
-                    logger.warning(f"Could not send bytes {byte_string}")
-                    self._is_connected = False
-                    return False
-                total_sent += sent
-            self._is_connected = True
-            return total_sent == data_size
+            sent = self._socket_connection.sendall(byte_string)
+            # returns None on success
+            return sent is None
         except OSError:
             logger.error(f"Could not send bytes {byte_string}")
             return False
