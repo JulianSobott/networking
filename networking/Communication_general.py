@@ -449,6 +449,7 @@ class MetaSingletonConnector(type):
 
 
 class Connector:
+    """Super class for :class:`MultiConnector` and :class:`SingleConnector`. """
     remote_functions: Optional[Type['Functions']] = None
     local_functions: Optional[Type['Functions']] = None
 
@@ -505,7 +506,7 @@ class Connector:
 
 
 class MultiConnector(Connector, metaclass=MetaSingletonConnector):
-
+    """Connector that allows creating multiple instances. Every instance is handled like a Singleton."""
     def __init__(self, id_: int) -> None:
         self._id = id_
         self.communicator: Optional[Communicator] = None
