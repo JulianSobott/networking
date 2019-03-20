@@ -42,6 +42,8 @@ public functions
 private classes
 -----------------
 
+.. autoclass:: MetaFunctionCommunicator
+    :members: __call__, __getattribute__, __getattr__
 
 
 Nice to haves
@@ -64,7 +66,7 @@ SocketAddress = Tuple[str, int]
 
 """Server and client ids are different to separate them, when server and client both run on the same machine."""
 CLIENT_ID_END = 30
-SERVER_ID_END = 0   # Max 30 servers
+SERVER_ID_END = 0  # Max 30 servers
 
 
 def to_client_id(id_: int) -> int:
@@ -327,12 +329,15 @@ class Communicator(threading.Thread):
 
 
 class PacketBuilder:
+    """Builds a packet from bytes chunk data. Bytes must be added till a packet can be built. This packet is returned"""
 
     def __init__(self, byte_stream: ByteStream) -> None:
         self.byte_stream = byte_stream
         self.current_header: Optional[Header] = None
 
     def add_chunk(self, byte_string: bytes) -> Optional[Packet]:
+        """Byte string is from receiving bytes from the tcp-connection. This function rebuilds the packet from it,
+        if there was enough data added."""
         self.byte_stream += byte_string
         if self.current_header is None and self.byte_stream.length >= Header.LENGTH_BYTES:
             self.current_header = Header.from_bytes(self.byte_stream)
@@ -345,8 +350,24 @@ class PacketBuilder:
 
 
 class MetaFunctionCommunicator(type):
+    """
+    Magic class.
+
+    This class makes it possible, that functions, that are located at the other side, and should be
+    transmitted of the network can be called, like they were local functions. The dunder functions of python play an
+    important role in this class. Python can intercept the process of getting an attribute with `__getattribute__`.
+    This function every time something is called with `x.foo` or `x.bar()`. Normally this just returns the attribute,
+    but in this case we treat every attribute (except special attributes) as a function call. This function call is
+    then packed into a function-packet with all its args and kwargs and is sent over the tcp-connection to the other
+    side. The data-packet, that is returned, is unpacked and returned to the caller. If an exception was risen at the
+    other side it also raises locally.
+
+    This class is the metaclass for following Function classes."""
 
     def __call__(cls, *args, **kwargs):
+        """A subclass can be called (not necessary). It is possible to call it with the `timeout` argument
+        (e.g. `remote_functions(timeout=2.5).function(...)`). This way it is waited till the data-packet arrives or
+        the timeout raises."""
         try:
             timeout = kwargs["timeout"]
             connector: Connector = cls.__getattr__("_connector")
@@ -357,6 +378,11 @@ class MetaFunctionCommunicator(type):
         return cls
 
     def __getattribute__(self, item: str):
+        """Intercepts the calling process of functions. To allow calling special variables there is this if block at
+        the beginning.
+
+        NOTE: that if you want to access any other attribute, you need to call it with the dunder functions, that are
+        defined in the if block."""
         if item == "__getattr__":
             return type.__getattribute__(self, item)
         if item == "__setattr__":
@@ -367,6 +393,8 @@ class MetaFunctionCommunicator(type):
             return type.__getattribute__(self, item)
 
         def container(*args, **kwargs) -> Any:
+            """Container works like a decorator container. The 'decoration' is, that it sends a function-packet and
+            receives and unpacks a data-packet."""
             function_name = item
             # send function packet
             connector: Connector = self.__getattr__("_connector")
@@ -393,9 +421,10 @@ class MetaFunctionCommunicator(type):
 
         return container
 
-    def __getattr__(self, item):
-        func = type.__getattribute__(self, item)
-        return func
+    def __getattr__(self, attr_name: str) -> Any:
+        """Allows accessing attributes without interception. Usage: <class_object>.__getattr__("<attribute_name>")"""
+        attribute = type.__getattribute__(self, attr_name)
+        return attribute
 
 
 class MetaSingletonConnector(type):
