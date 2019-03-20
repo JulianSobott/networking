@@ -428,6 +428,7 @@ class MetaFunctionCommunicator(type):
 
 
 class MetaSingletonConnector(type):
+    """Allows singleton like connectors. Each connector is identified, by its id."""
     _instances: Dict[int, 'Connector'] = {}
 
     def __call__(cls, *args, **kwargs) -> 'Connector':
