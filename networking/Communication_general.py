@@ -326,36 +326,6 @@ class Communicator(threading.Thread):
         return self._id
 
 
-class ByteDecoder:
-
-    def __init__(self):
-        self._packet_builder = PacketBuilder()
-        self._file_receiver = FileReceiver()
-        self.byte_stream = ByteStream(b"")
-        self.current_header: Optional[Header] = None
-        self.receiving_file = False
-
-    def add_chunk(self, byte_string: bytes) -> Optional[Packet]:
-        if self.receiving_file:
-            file_data_size = self._file_receiver.file_size - self._file_receiver.received_bytes
-            self._file_receiver.add_file_data(byte_string[:file_data_size])
-            byte_string = byte_string[file_data_size:]
-            if len(byte_string) > 0:
-                self.receiving_file = False
-        self.byte_stream += byte_string
-        if not self.receiving_file:
-            if self.current_header is None and self.byte_stream.length >= Header.LENGTH_BYTES:
-                self.current_header = Header.from_bytes(self.byte_stream)
-            if self.current_header and self.byte_stream.remaining_length >= self.current_header.specific_data_size:
-                packet = Packet.from_bytes(self.current_header, self.byte_stream)
-                if isinstance(packet, FileMetaPacket):
-                    self.receiving_file = True
-                self.byte_stream.remove_consumed_bytes()
-                self.current_header = None
-                return packet
-        return None
-
-
 class PacketBuilder:
 
     def __init__(self, byte_stream: ByteStream) -> None:
@@ -372,23 +342,6 @@ class PacketBuilder:
             self.current_header = None
             return packet
         return None
-
-
-class FileReceiver:
-
-    def __init__(self) -> None:
-        self.receiving_file = False
-        self.received_bytes = 0
-        self.file_size = 0
-        self.dst_path = ""
-
-    def set_file_meta_data(self, meta_packet: FileMetaPacket):
-        self.file_size = meta_packet.file_size
-        self.dst_path = meta_packet.dst_path
-
-    def add_file_data(self, file_data: bytes) -> None:
-        with open(self.dst_path, "wb+") as f:
-            f.write(file_data)
 
 
 class MetaFunctionCommunicator(type):
