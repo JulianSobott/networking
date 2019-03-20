@@ -1,12 +1,53 @@
 """
-@author: Julian Sobott
-@brief:
-@description:
+:module: networking.Communication_general
+:synopsis: Important functions, classes for communication. Main module of networking.
+:author: Julian Sobott
 
-@external_use:
+public classes
+----------------
+Communicator, Connector, SocketAddress, Functions, to_server_id
 
-@internal_use:
-@Features: Better raise of excpetion : add file and linenumber, when packet return
+.. autoclass:: Communicator
+    :members:
+    :undoc-members:
+    :private-members:
+
+.. autoclass:: Connector
+    :members:
+    :undoc-members:
+
+.. autoclass:: SingleConnector
+    :members:
+    :undoc-members:
+
+.. autoclass:: MultiConnector
+    :members:
+    :undoc-members:
+
+.. autoclass:: MultiConnector
+    :members:
+    :undoc-members:
+
+.. autoclass:: Functions
+    :noindex:
+    :members:
+    :undoc-members:
+
+
+public functions
+----------------
+
+.. autofunction:: to_server_id
+
+private classes
+-----------------
+
+
+
+Nice to haves
+--------------
+
+Better raise of exception : add file and line-number, when packet return
 """
 import threading
 import socket
@@ -21,19 +62,23 @@ from networking.Data import ByteStream, File
 
 SocketAddress = Tuple[str, int]
 
+"""Server and client ids are different to separate them, when server and client both run on the same machine."""
 CLIENT_ID_END = 30
 SERVER_ID_END = 0   # Max 30 servers
 
 
-def to_client_id(id_):
+def to_client_id(id_: int) -> int:
     return int(id_ + CLIENT_ID_END)
 
 
-def to_server_id(id_):
+def to_server_id(id_: int) -> int:
     return int(id_ + SERVER_ID_END)
 
 
 class Communicator(threading.Thread):
+    """Super class for all communicators. It handles a tcp-socket connection. Can send and receive packets and
+    handles them. Responsible for connecting to another tcp-socket.
+    """
     CHUNK_SIZE = 4096
 
     def __init__(self, address: SocketAddress, id_, socket_connection=socket.socket(), from_accept=False,
@@ -55,11 +100,60 @@ class Communicator(threading.Thread):
         self.wait_for_response_timeout = float("inf")
 
     def run(self) -> None:
+        """Connects to a tcp-socket. When it is connected, it listens to packets, that are sent from the other
+        socket."""
         if not self._is_connected:
             self._connect()
         self._wait_for_new_input()
 
-    def _connect(self, seconds_till_next_try=2, timeout=-1) -> bool:
+    def send_packet(self, packet: Packet) -> bool:
+        """Set the proper ids and converts/packs the packet into bytes. Sends the bytes string."""
+        IDManager(self._id).set_ids_of_packet(packet)
+        send_data = packet.pack()
+        successfully_sent = self._send_bytes(send_data)
+        if not successfully_sent:
+            logger.error("Could not send packet: %s", str(packet))
+        return successfully_sent
+
+    def wait_for_response(self):
+        """Waits till a data-packet is received and returns it. If a function packet is received instead it is
+        executed first."""
+        waited = 0.
+        while self._is_on:
+            next_global_id = IDManager(self._id).get_next_outer_id()
+            try:
+                next_packet = self._packets.pop(0)
+                actual_outer_id = next_packet.header.id_container.global_id
+                if actual_outer_id > next_global_id:
+                    logger.error(f"Packet lost! Expected outer_id: {next_global_id}. Got instead: {actual_outer_id}")
+                    # TODO: handle
+                elif actual_outer_id < next_global_id:
+                    logger.error(f"Unhandled Packet! Expected outer_id: {next_global_id}. "
+                                 f"Got instead: {actual_outer_id}")
+                    # TODO: handle (if possible)
+                else:
+                    if isinstance(next_packet, FunctionPacket):
+                        # TODO: remove this
+                        """execute and keep waiting for data"""
+                        self._handle_packet(next_packet)
+                    elif isinstance(next_packet, DataPacket):
+                        self._handle_packet(next_packet)
+                        return next_packet
+                    elif isinstance(next_packet, FileMetaPacket):
+                        """File is already transmitted."""
+                        return DataPacket(**{"return": File.from_meta_packet(next_packet)})
+                    else:
+                        logger.error(f"Received not implemented Packet class: {type(next_packet)}")
+
+            except IndexError:
+                pass  # List is empty -> wait
+            self._exit.wait(self._time_till_next_check)
+            waited += self._time_till_next_check
+            if waited > self.wait_for_response_timeout >= 0:
+                logger.warning("wait_for_response waited too long")
+                raise TimeoutError("wait_for_response waited too long")
+
+    def _connect(self, seconds_till_next_try: float = 2, timeout: float = -1) -> bool:
         waited = 0
         while self._is_on and not self._is_connected:
             try:
@@ -84,7 +178,29 @@ class Communicator(threading.Thread):
                 return False
         return False
 
+    def _wait_for_new_input(self):
+        """Loop that is constantly receiving or waiting for new packets from the tcp-connection."""
+        byte_stream = ByteStream(b'')
+        while self._is_on:
+            if self._is_on and not self._is_connected:
+                if self._keep_connection:
+                    self._connect()
+                else:
+                    self.stop(is_same_thread=True)
+            packet = self._recv_packet(byte_stream)
+            if packet is not None:
+                if isinstance(packet, FileMetaPacket):
+                    self._recv_file(packet, byte_stream)
+                    self._packets.append(packet)
+                # TODO: always execute packet
+                elif self._auto_execute_functions and isinstance(packet, FunctionPacket):
+                    func_thread = FunctionExecutionThread(self._id, packet, self._handle_packet)
+                    func_thread.start()
+                else:
+                    self._packets.append(packet)
+
     def _recv_data(self, size: int) -> Optional[bytes]:
+        """Pulls the given amount of bytes from the tcp-connection buffer and returns it."""
         try:
             chunk_data = self._socket_connection.recv(size)
             if chunk_data == b"":
@@ -108,26 +224,8 @@ class Communicator(threading.Thread):
                 logger.warning("TCP connection closed while listening")
             self._is_connected = False
 
-    def _wait_for_new_input(self):
-        byte_stream = ByteStream(b'')
-        while self._is_on:
-            if self._is_on and not self._is_connected:
-                if self._keep_connection:
-                    self._connect()
-                else:
-                    self.stop(is_same_thread=True)
-            packet = self._recv_packet(byte_stream)
-            if packet is not None:
-                if isinstance(packet, FileMetaPacket):
-                    self._recv_file(packet, byte_stream)
-                    self._packets.append(packet)
-                elif self._auto_execute_functions and isinstance(packet, FunctionPacket):
-                    func_thread = FunctionExecutionThread(self._id, packet, self._handle_packet)
-                    func_thread.start()
-                else:
-                    self._packets.append(packet)
-
     def _recv_packet(self, byte_stream: ByteStream) -> Optional[Packet]:
+        """Receives bytes till a packet can be build. This packet is returned"""
         packet_builder = PacketBuilder(byte_stream)
         while True:
             chunk_data = self._recv_data(self.CHUNK_SIZE)
@@ -141,8 +239,9 @@ class Communicator(threading.Thread):
                 if possible_packet is not None:
                     return possible_packet
 
-    @utils.time_func
     def _recv_file(self, file_meta_packet: FileMetaPacket, byte_stream: ByteStream) -> None:
+        """Receives bytes, till the file is fully received. The file is saved at the destination, given in the
+        file_meta_packet."""
         file_path = file_meta_packet.dst_path
         existing_bytes = byte_stream.next_all_bytes()
         with open(file_path, "wb+") as file:
@@ -155,20 +254,13 @@ class Communicator(threading.Thread):
                 file.write(data)
                 remaining_bytes -= len(data)
 
-    def send_packet(self, packet: Packet) -> bool:
-        IDManager(self._id).set_ids_of_packet(packet)
-        send_data = packet.pack()
-        successfully_sent = self._send_bytes(send_data)
-        if not successfully_sent:
-            logger.error("Could not send packet: %s", str(packet))
-        return successfully_sent
-
     def _send_bytes(self, byte_string: bytes) -> bool:
         if not self._is_connected:
             self._connect(timeout=2)
         try:
             total_sent = 0
             data_size = len(byte_string)
+            # TODO: change to sendall
             while total_sent < data_size:
                 sent = self._socket_connection.send(byte_string[total_sent:])
                 if sent == 0:
@@ -182,48 +274,15 @@ class Communicator(threading.Thread):
             logger.error(f"Could not send bytes {byte_string}")
             return False
 
-    def wait_for_response(self):
-        # TODO: add type hinting when implementation is finished
-        waited = 0.
-        while self._is_on:
-            next_global_id = IDManager(self._id).get_next_outer_id()
-            try:
-                next_packet = self._packets.pop(0)
-                actual_outer_id = next_packet.header.id_container.global_id
-                if actual_outer_id > next_global_id:
-                    logger.error(f"Packet lost! Expected outer_id: {next_global_id}. Got instead: {actual_outer_id}")
-                    # TODO: handle
-                elif actual_outer_id < next_global_id:
-                    logger.error(f"Unhandled Packet! Expected outer_id: {next_global_id}. "
-                                 f"Got instead: {actual_outer_id}")
-                    # TODO: handle (if possible)
-                else:
-                    if isinstance(next_packet, FunctionPacket):
-                        # execute and keep waiting for data
-                        self._handle_packet(next_packet)
-                    elif isinstance(next_packet, DataPacket):
-                        self._handle_packet(next_packet)
-                        return next_packet
-                    elif isinstance(next_packet, FileMetaPacket):
-                        return DataPacket(**{"return": File.from_meta_packet(next_packet)})
-                    # if isinstance FileMetaPacket: wait till all data is saved to file (receive_file)
-                    else:
-                        logger.error(f"Received not implemented Packet class: {type(next_packet)}")
-
-            except IndexError:
-                pass  # List is empty -> wait
-            self._exit.wait(self._time_till_next_check)
-            waited += self._time_till_next_check
-            if waited > self.wait_for_response_timeout >= 0:
-                logger.warning("wait_for_response waited too long")
-                raise TimeoutError("wait_for_response waited too long")
-
     def _handle_packet(self, packet):
+        """Adjusts all ids in the IDManager. Handles function-packets."""
         IDManager(self._id).update_ids_by_packet(packet)
         if isinstance(packet, FunctionPacket):
             self._received_function_packet(packet)
 
     def _received_function_packet(self, packet: FunctionPacket) -> None:
+        """Executes the function, with all args. Packs the return value or the exception in a data-packet and sends
+        it back. If a networking.File is returned, a FileMetaPacket + the file itself is sent."""
         func = packet.function_name
         args = packet.args
         kwargs = packet.kwargs
@@ -240,8 +299,8 @@ class Communicator(threading.Thread):
         data_packet = DataPacket(**ret_kwargs)
         self.send_packet(data_packet)
 
-    @utils.time_func
     def _send_file(self, file: File):
+        """Creates a FileMetaPacket, that is sent and followed by the file_content."""
         file_meta_packet = FileMetaPacket(file.src_path, file.size, file.dst_path)
         self.send_packet(file_meta_packet)
         with open(file.src_path, "rb") as f:
@@ -251,6 +310,8 @@ class Communicator(threading.Thread):
                 file_data = f.read(self.CHUNK_SIZE * 2)
 
     def stop(self, is_same_thread=False) -> None:
+        """Stops all listening and the thread is joined. Send processes are not stopped and it the thread first
+        stops when all data is sent."""
         if self._closed:
             logger.debug("Prevented closing already closed communicator")
         else:

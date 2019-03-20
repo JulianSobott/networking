@@ -13,3 +13,4 @@ just want to use the `networking` library for your project.
    data
    id_management
    packets
+   communication_general
