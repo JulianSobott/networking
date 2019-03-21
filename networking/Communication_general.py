@@ -511,7 +511,7 @@ class Connector:
 class MultiConnector(Connector, metaclass=MetaSingletonConnector):
     """Connector that allows creating multiple instances. Every instance is handled like a Singleton."""
     def __init__(self, id_: int) -> None:
-        self._id = id_
+        self._id = to_client_id(id_)
         self.communicator: Optional[Communicator] = None
 
     def connect(self: Connector, addr: SocketAddress, blocking=True, timeout=float("inf")) -> bool:
