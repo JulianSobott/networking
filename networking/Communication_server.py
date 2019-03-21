@@ -13,6 +13,7 @@ from typing import Dict, Type, Union, Optional
 
 from networking.Logging import logger
 from networking.Communication_general import Communicator, Connector, SocketAddress, Functions, to_server_id
+import networking.Communication_general
 from networking.Data import Cryptographer
 from networking.ID_management import IDManager
 from networking.Packets import DataPacket
@@ -154,7 +155,8 @@ class ClientCommunicator(Connector):
                                          local_functions=self.local_functions)
         self.communicator.start()
         self.remote_functions.__setattr__(self.remote_functions, "_connector", self)
-        exchange_keys(self)
+        if networking.Communication_general.ENCRYPTED_COMMUNICATION:
+            exchange_keys(self)
 
     def close_connection(self: Connector, blocking=True, timeout=float("inf")) -> None:
         return super().close_connection(self, blocking, timeout)
@@ -179,7 +181,7 @@ class ClientFunctions(Functions):
 
 
 def exchange_keys(client_communicator: ClientCommunicator):
-    # generate communication_key TODO
+    # generate communication_key
     serialized_communication_key = Cryptographer.generate_communication_key()
 
     # wait for public key

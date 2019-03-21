@@ -68,6 +68,13 @@ SocketAddress = Tuple[str, int]
 CLIENT_ID_END = 30
 SERVER_ID_END = 0  # Max 30 servers
 
+ENCRYPTED_COMMUNICATION = True
+
+
+def set_encrypted_communication(value: bool):
+    global ENCRYPTED_COMMUNICATION
+    ENCRYPTED_COMMUNICATION = value
+
 
 def to_client_id(id_: int) -> int:
     return int(id_ + CLIENT_ID_END)

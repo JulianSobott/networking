@@ -11,6 +11,7 @@ from typing import Union, Type, Optional
 
 from networking.Logging import logger
 from networking.Communication_general import SingleConnector, MultiConnector, Functions, Communicator
+import networking.Communication_general
 from networking.Communication_general import Connector, SingleConnector, MultiConnector, Functions, Communicator, SocketAddress
 from networking.Packets import DataPacket
 from networking.Data import Cryptographer
@@ -25,10 +26,11 @@ class ServerCommunicator(SingleConnector):
         """
 
     @classmethod
-    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf")):
+    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf")) -> bool:
         connected = super().connect(addr, blocking, timeout)
-        if connected:
+        if connected and networking.Communication_general.ENCRYPTED_COMMUNICATION:
             exchange_keys(cls)
+        return connected
 
 
 class MultiServerCommunicator(MultiConnector):
@@ -38,10 +40,11 @@ class MultiServerCommunicator(MultiConnector):
     the same object is returned, like a Singleton.
     """
 
-    def connect(self, addr: SocketAddress, blocking=True, timeout=float("inf")):
+    def connect(self, addr: SocketAddress, blocking=True, timeout=float("inf")) -> bool:
         connected = super().connect(addr, blocking, timeout)
-        if connected:
+        if connected and networking.Communication_general.ENCRYPTED_COMMUNICATION:
             exchange_keys(self)
+        return connected
 
 
 class ServerFunctions(Functions):

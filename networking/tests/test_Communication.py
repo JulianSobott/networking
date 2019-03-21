@@ -6,6 +6,7 @@ from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_til
 from networking.Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
 from networking.Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager
 from networking.Communication_general import to_server_id
+import networking.Communication_general
 from networking.Logging import logger
 from networking.Data import Cryptographer
 
@@ -88,6 +89,7 @@ class TestConnecting(CommunicationTestCase):
         self.assertEqual(get_num_non_dummy_threads(), 1)
 
     def test_multiple_clients(self):
+        networking.Communication_general.set_encrypted_communication(False)
         with ClientManager(dummy_address, DummyClientCommunicator) as listener:
             DummyMultiServerCommunicator(0).connect(dummy_address)
             DummyMultiServerCommunicator(1).connect(dummy_address)
@@ -113,6 +115,7 @@ class TestConnecting(CommunicationTestCase):
         wait_till_joined(listener, timeout=1)
 
         self.assertEqual(get_num_non_dummy_threads(), 1)
+        networking.Communication_general.set_encrypted_communication(True)
 
     def test_offline_server(self):
         connected = DummyServerCommunicator.connect(dummy_address, timeout=0)
