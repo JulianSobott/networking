@@ -39,6 +39,10 @@ import os
 import pickle
 from typing import Any, Union, Tuple
 from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.backends import default_backend as crypto_default_backend
 
 from networking.utils import Ddict, load_dict_from_json, dump_dict_to_json
 
@@ -120,7 +124,7 @@ def _pack(*args) -> bytes:
             try:
                 dict_byte_string = dump_dict_to_json(value).encode(ENCODING)
             except TypeError as e:
-                e.args = (f"Only objects of the following types are packable: ({types.keys()}", )
+                e.args = (f"Only objects of the following types are packable: ({types.keys()}",)
                 raise
             byte_string += int.to_bytes(len(dict_byte_string), NUM_INT_BYTES, BYTEORDER)
             byte_string += dict_byte_string
@@ -132,7 +136,8 @@ def _pack(*args) -> bytes:
             byte_string += int.to_bytes(len(value), NUM_INT_BYTES, BYTEORDER)
             byte_string += value
         elif val_type is bool:
-            byte_string += int.to_bytes(1, 1, BYTEORDER, signed=False) if value else int.to_bytes(0, 1, BYTEORDER, signed=False)
+            byte_string += int.to_bytes(1, 1, BYTEORDER, signed=False) if value else int.to_bytes(0, 1, BYTEORDER,
+                                                                                                  signed=False)
         elif isinstance(val_type(), type(None)):
             pass
         else:
@@ -189,6 +194,7 @@ def _unpack(bytes_: Union[bytes, 'ByteStream']) -> tuple:
 class ByteStream:
     """This class utilises the bytes object. Among other things, it stores the bytes string and the idx. All `next`
     functions move the idx."""
+
     def __init__(self, byte_string: bytes) -> None:
         self.byte_string = byte_string
         self.idx = 0
@@ -244,6 +250,7 @@ class ByteStream:
 class File:
     """This class represents a file that should be sent. If a file is to be sent, an object of this class shall be
     sent with the proper paths. This internally sends the file."""
+
     def __init__(self, src_path: str, dst_path: str) -> None:
         self.src_path = src_path
         self.dst_path = dst_path
@@ -270,7 +277,6 @@ def pack_int(num: int) -> bytes:
 
 
 class Cryptographer:
-
     key = None
     f = None
 
@@ -291,6 +297,38 @@ class Cryptographer:
             return byte_stream
         byte_string = Cryptographer.f.decrypt(byte_stream.next_bytes(num_bytes))
         return ByteStream(byte_string)
+
+    @staticmethod
+    def generate_key_pair():
+        private_key = rsa.generate_private_key(
+            backend=crypto_default_backend(),
+            public_exponent=65537,
+            key_size=2048
+        )
+        public_key = private_key.public_key()
+        return private_key, public_key
+
+    @staticmethod
+    def encrypt_pgp_msg(message: bytes, public_key) -> bytes:
+        return public_key.encrypt(
+            message,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+
+    @staticmethod
+    def decrypt_pgp_msg(ciphertext: bytes, private_key) -> bytes:
+        return private_key.decrypt(
+            ciphertext,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
 
     @staticmethod
     def tear_down():
