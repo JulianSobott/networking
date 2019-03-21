@@ -9,6 +9,8 @@ nose2 = "*"
 [packages]
 cryptography = "*"
 pyopenssl = "*"
+thread-testing = {index = "https://test.pypi.org/simple/",version = "*"}
+yappi = "*"
 
 [requires]
 python_version = "3.7"

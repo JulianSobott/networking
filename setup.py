@@ -1,8 +1,12 @@
 from setuptools import setup, find_packages
 
+with open("README.rst", "r") as fh:
+    long_description = fh.read()
+
 setup(name='networking',
-      version='0.1',
+      version='0.1a4',
       description='High level network communication',
+      long_description=long_description,
       url='https://github.com/JulianSobott/networking',
       author='Julian Sobott',
       author_email='julian.sobott@gmx.de',
@@ -17,6 +21,14 @@ setup(name='networking',
         "Documentation": "https://github.com/JulianSobott/networking/wiki",
         "Source Code": "https://github.com/JulianSobott/networking",
       },
+      classifiers=[
+        "Programming Language :: Python :: 3.7",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: OS Independent",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: System :: Monitoring",
+        ],
+      zip_safe=False
       zip_safe=False,
       install_requires=['cryptography']
       )

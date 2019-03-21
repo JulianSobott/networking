@@ -1,15 +1,15 @@
 """
-@author: Julian Sobott
-@created: XX.XX.2019
-@brief:
-@description:
+High level network communication
 
-@external_use:
+This tool abstracts network communication to a level, where the end user don`t has to care about
+network communication. Server side functions can be called at the client as they were local and vise versa.
+Functions may be called with parameters and may return values.
 
-@internal_use:
-
-@TODO:
 """
-from Communication_client import ServerCommunicator, ServerFunctions, MultiServerCommunicator
-from Communication_server import ClientCommunicator, ClientFunctions, ClientManager, MetaClientManager, ClientPool
-import Logging
+from networking.Communication_client import ServerCommunicator, ServerFunctions, MultiServerCommunicator
+from networking.Communication_server import ClientCommunicator, ClientFunctions, ClientManager
+from networking.Data import File
+import networking.utils
+import networking.Logging
+
+networking.Logging.logger.setLevel(40)

@@ -3,16 +3,18 @@ import sys
 
 from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
 
-from Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
-from Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager, ClientPool
-from Communication_general import to_server_id
-from Data import Cryptographer
-from Logging import logger
+from networking.Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
+from networking.Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager
+from networking.Communication_general import to_server_id
+from networking.Logging import logger
+from networking.Data import Cryptographer
 
 from networking.tests.example_functions import DummyPerson, DummyServerCommunicator, DummyClientCommunicator, \
     DummyMultiServerCommunicator
 
 dummy_address = ("127.0.0.1", 5000)
+
+logger.setLevel(0)
 
 
 class CommunicationTestCase(unittest.TestCase):
@@ -20,7 +22,6 @@ class CommunicationTestCase(unittest.TestCase):
         DummyServerCommunicator.close_connection()
         MultiServerCommunicator.close_all_connections()
         MetaClientManager.tear_down()
-        ClientPool.tear_down()
         Cryptographer.tear_down()
 
     def setUp(self):
@@ -204,6 +205,28 @@ class TestCommunicating(CommunicationTestCase):
         self.helper_test_func(DummyServerCommunicator.remote_functions(timeout=2).huge_args_huge_ret,
                               args,
                               args)
+
+    def test_small_file(self):
+        import os
+        file_path = "std_out.txt"
+        destination_path = "new_file.txt"
+        with ClientManager(dummy_address, DummyClientCommunicator):
+            DummyServerCommunicator.connect(dummy_address)
+            file = DummyServerCommunicator.remote_functions().get_file(file_path, destination_path)
+            self.assertEqual(file.src_path, file_path)
+            self.assertEqual(file.dst_path, destination_path)
+        self.assertEqual(os.path.getsize(file_path), os.path.getsize(destination_path))
+
+    def test_huge_file(self):
+        import os
+        file_path = "dummy.txt"
+        destination_path = "new_file.txt"
+        with ClientManager(dummy_address, DummyClientCommunicator):
+            DummyServerCommunicator.connect(dummy_address)
+            file = DummyServerCommunicator.remote_functions().get_file(file_path, destination_path)
+            self.assertEqual(file.src_path, file_path)
+            self.assertEqual(file.dst_path, destination_path)
+        self.assertEqual(os.path.getsize(file_path), os.path.getsize(destination_path))
 
     def test_func_in_func(self):
         self.helper_test_func(DummyServerCommunicator.remote_functions(timeout=2).func_in_func,

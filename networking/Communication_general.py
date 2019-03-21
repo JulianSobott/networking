@@ -1,39 +1,87 @@
 """
-@author: Julian Sobott
-@brief:
-@description:
+:module: networking.Communication_general
+:synopsis: Important functions, classes for communication. Main module of networking.
+:author: Julian Sobott
 
-@external_use:
+public classes
+----------------
+Communicator, Connector, SocketAddress, Functions, to_server_id
 
-@internal_use:
-@Features: Better raise of excpetion : add file and linenumber, when packet return
+.. autoclass:: Communicator
+    :members:
+    :undoc-members:
+    :private-members:
+
+.. autoclass:: Connector
+    :members:
+    :undoc-members:
+
+.. autoclass:: SingleConnector
+    :members:
+    :undoc-members:
+
+.. autoclass:: MultiConnector
+    :members:
+    :undoc-members:
+
+.. autoclass:: MultiConnector
+    :members:
+    :undoc-members:
+
+.. autoclass:: Functions
+    :noindex:
+    :members:
+    :undoc-members:
+
+
+public functions
+----------------
+
+.. autofunction:: to_server_id
+
+private classes
+-----------------
+
+.. autoclass:: MetaFunctionCommunicator
+    :members: __call__, __getattribute__, __getattr__
+
+
+Nice to haves
+--------------
+
+Better raise of exception : add file and line-number, when packet return
 """
 import threading
 import socket
 import time
 from typing import Tuple, List, Dict, Optional, Callable, Any, Type, Union
 
-from Logging import logger
-from Packets import Packet, DataPacket, FunctionPacket, Header
-from ID_management import IDManager, remove_manager
-from Data import ByteStream
+import utils
+from networking.Logging import logger
+from networking.Packets import Packet, DataPacket, FunctionPacket, FileMetaPacket, Header, packets as packet_types
+from networking.ID_management import IDManager, remove_manager
+from networking.Data import ByteStream, File
 
 SocketAddress = Tuple[str, int]
 
-CLIENT_ID_END = 0
-SERVER_ID_END = 30
+"""Server and client ids are different to separate them, when server and client both run on the same machine."""
+CLIENT_ID_END = 30
+SERVER_ID_END = 0  # Max 30 servers
 
 
-def to_client_id(id_):
+def to_client_id(id_: int) -> int:
     return int(id_ + CLIENT_ID_END)
 
 
-def to_server_id(id_):
+def to_server_id(id_: int) -> int:
     return int(id_ + SERVER_ID_END)
 
 
 class Communicator(threading.Thread):
-    CHUNK_SIZE = 1024
+    """Super class for all communicators. It handles a tcp-socket connection. Can send and receive packets and
+    handles them. Responsible for connecting to another tcp-socket.
+    """
+    CHUNK_SIZE = 4096
 
     def __init__(self, address: SocketAddress, id_, socket_connection=socket.socket(), from_accept=False,
                  on_close: Optional[Callable[['Communicator'], Any]] = None, local_functions=Type['Functions']) -> None:
@@ -54,97 +102,24 @@ class Communicator(threading.Thread):
         self.wait_for_response_timeout = float("inf")
 
     def run(self) -> None:
+        """Connects to a tcp-socket. When it is connected, it listens to packets, that are sent from the other
+        socket."""
         if not self._is_connected:
             self._connect()
         self._wait_for_new_input()
 
-    def _connect(self, seconds_till_next_try=2, timeout=-1) -> bool:
-        waited = 0
-        while self._is_on and not self._is_connected:
-            try:
-                self._socket_connection = socket.create_connection(self._address)
-                self._is_connected = True
-                logger.info(f"Successfully connected to: {str(self._address)}")
-                return True
-            except ConnectionRefusedError:
-                logger.warning("Could not connect to server with address: (%s)", str(self._address))
-            except OSError as e:
-                logger.error("Is already connected to server")
-                logger.debug(e)
-                self._is_connected = True
-
-            self._exit.wait(seconds_till_next_try)
-            waited += seconds_till_next_try
-            if waited > timeout >= 0:
-                logger.warning("Connection timeout")
-                return False
-        return False
-
-    def _wait_for_new_input(self) -> None:
-        packet_builder = PacketBuilder()
-        with self._socket_connection:
-            while self._is_on:
-                if self._is_on and not self._is_connected:
-                    if self._keep_connection:
-                        self._connect()
-                    else:
-                        self.stop(is_same_thread=True)
-                try:
-                    chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
-                    if chunk_data == b"":
-                        logger.info("Connection reset, (%s)", str(self._address))
-                        self._is_connected = False
-                    else:
-                        possible_packet = packet_builder.add_chunk(chunk_data)
-                        if possible_packet is not None:
-                            logger.info(f"New Packet at ({self._id}): {possible_packet}")
-                            if self._auto_execute_functions and isinstance(possible_packet, FunctionPacket):
-                                func_thread = FunctionExecutionThread(self._id, possible_packet, self._handle_packet)
-                                func_thread.start()
-                            else:
-                                self._packets.append(possible_packet)
-
-                except ConnectionResetError:
-                    if self._is_on:
-                        logger.warning(f"Connection reset at ID({self._id}), ({self._address})")
-                    self._is_connected = False
-
-                except ConnectionAbortedError:
-                    if self._is_on:
-                        logger.warning(f"Connection aborted at ID({self._id}), ({self._address})")
-                    self._is_connected = False
-
-                except OSError:
-                    if self._is_on:
-                        logger.warning("TCP connection closed while listening")
-                    self._is_connected = False
-
-                self._exit.wait(self._time_till_next_check)
-
     def send_packet(self, packet: Packet) -> bool:
-        # TODO: add type hinting when implementation is finished
-        if not self._is_connected:
-            self._connect(timeout=2)
-        try:
-            IDManager(self._id).set_ids_of_packet(packet)
-            send_data = packet.pack()
-            total_sent = 0
-            data_size = len(send_data)
-            while total_sent < data_size:
-                sent = self._socket_connection.send(send_data[total_sent:])
-                if sent == 0:
-                    logger.warning("Connection closed. Could not send packet")
-                    self._is_connected = False
-                    return False
-                total_sent += sent
-            self._is_connected = True
-            return total_sent == data_size
-        except OSError:
+        """Set the proper ids and converts/packs the packet into bytes. Sends the bytes string."""
+        IDManager(self._id).set_ids_of_packet(packet)
+        send_data = packet.pack()
+        successfully_sent = self._send_bytes(send_data)
+        if not successfully_sent:
             logger.error("Could not send packet: %s", str(packet))
-            return False
+        return successfully_sent
 
     def wait_for_response(self):
-        # TODO: add type hinting when implementation is finished
+        """Waits till a data-packet is received and returns it. If a function packet is received instead it is
+        executed first."""
         waited = 0.
         while self._is_on:
             next_global_id = IDManager(self._id).get_next_outer_id()
@@ -160,12 +135,14 @@ class Communicator(threading.Thread):
                     # TODO: handle (if possible)
                 else:
                     if isinstance(next_packet, FunctionPacket):
-                        # execute and keep waiting for data
+                        """execute and keep waiting for data"""
                         self._handle_packet(next_packet)
-                        next_global_id = IDManager(self._id).get_next_outer_id()
                     elif isinstance(next_packet, DataPacket):
                         self._handle_packet(next_packet)
                         return next_packet
+                    elif isinstance(next_packet, FileMetaPacket):
+                        """File is already transmitted."""
+                        return DataPacket(**{"return": File.from_meta_packet(next_packet)})
                     else:
                         logger.error(f"Received not implemented Packet class: {type(next_packet)}")
 
@@ -177,17 +154,133 @@ class Communicator(threading.Thread):
                 logger.warning("wait_for_response waited too long")
                 raise TimeoutError("wait_for_response waited too long")
 
+    def _connect(self, seconds_till_next_try: float = 2, timeout: float = -1) -> bool:
+        waited = 0
+        while self._is_on and not self._is_connected:
+            try:
+                self._socket_connection = socket.create_connection(self._address)
+                self._is_connected = True
+                logger.info(f"Successfully connected to: {str(self._address)}")
+                return True
+            except ConnectionRefusedError:
+                logger.warning("Could not connect to server with address: (%s)", str(self._address))
+            except OSError as e:
+                logger.error("Is already connected to server")
+                logger.debug(e)
+                self._is_connected = True
+            except socket.gaierror:
+                raise ValueError(
+                    f"Address error. {self._address} is not a valid address. Address must be of type {SocketAddress}")
+
+            self._exit.wait(seconds_till_next_try)
+            waited += seconds_till_next_try
+            if waited > timeout >= 0:
+                logger.warning("Connection timeout")
+                return False
+        return False
+
+    def _wait_for_new_input(self):
+        """Loop that is constantly receiving or waiting for new packets from the tcp-connection."""
+        byte_stream = ByteStream(b'')
+        while self._is_on:
+            if self._is_on and not self._is_connected:
+                if self._keep_connection:
+                    self._connect()
+                else:
+                    self.stop(is_same_thread=True)
+            packet = self._recv_packet(byte_stream)
+            if packet is not None:
+                if isinstance(packet, FileMetaPacket):
+                    self._recv_file(packet, byte_stream)
+                    self._packets.append(packet)
+                elif self._auto_execute_functions and isinstance(packet, FunctionPacket):
+                    func_thread = FunctionExecutionThread(self._id, packet, self._handle_packet)
+                    func_thread.start()
+                else:
+                    self._packets.append(packet)
+
+    def _recv_data(self, size: int) -> Optional[bytes]:
+        """Pulls the given amount of bytes from the tcp-connection buffer and returns it."""
+        try:
+            chunk_data = self._socket_connection.recv(size)
+            if chunk_data == b"":
+                logger.info("Connection reset, (%s)", str(self._address))
+                self._is_connected = False
+            else:
+                return chunk_data
+
+        except ConnectionResetError:
+            if self._is_on:
+                logger.warning(f"Connection reset at ID({self._id}), {self._address}")
+            self._is_connected = False
+
+        except ConnectionAbortedError:
+            if self._is_on:
+                logger.warning(f"Connection aborted at ID({self._id}), {self._address}")
+            self._is_connected = False
+
+        except OSError:
+            if self._is_on:
+                logger.warning("TCP connection closed while listening")
+            self._is_connected = False
+
+    def _recv_packet(self, byte_stream: ByteStream) -> Optional[Packet]:
+        """Receives bytes till a packet can be build. This packet is returned"""
+        packet_builder = PacketBuilder(byte_stream)
+        while True:
+            chunk_data = self._recv_data(self.CHUNK_SIZE)
+            if chunk_data == b"" or chunk_data is None:
+                logger.info("Connection reset, (%s)", str(self._address))
+                self._is_connected = False
+                return None
+            else:
+                possible_packet = packet_builder.add_chunk(chunk_data)
+                logger.debug(possible_packet)
+                if possible_packet is not None:
+                    return possible_packet
+
+    def _recv_file(self, file_meta_packet: FileMetaPacket, byte_stream: ByteStream) -> None:
+        """Receives bytes, till the file is fully received. The file is saved at the destination, given in the
+        file_meta_packet."""
+        file_path = file_meta_packet.dst_path
+        existing_bytes = byte_stream.next_all_bytes()
+        with open(file_path, "wb+") as file:
+            file.write(existing_bytes)
+        remaining_bytes = file_meta_packet.file_size - len(existing_bytes)
+        with open(file_path, "ab") as file:
+            while remaining_bytes > 0:
+                num_next_bytes = min(self.CHUNK_SIZE, remaining_bytes)
+                data = self._recv_data(num_next_bytes)
+                file.write(data)
+                remaining_bytes -= len(data)
+
+    def _send_bytes(self, byte_string: bytes) -> bool:
+        if not self._is_connected:
+            self._connect(timeout=2)
+        try:
+            sent = self._socket_connection.sendall(byte_string)
+            # returns None on success
+            return sent is None
+        except OSError:
+            logger.error(f"Could not send bytes {byte_string}")
+            return False
+
     def _handle_packet(self, packet):
+        """Adjusts all ids in the IDManager. Handles function-packets."""
         IDManager(self._id).update_ids_by_packet(packet)
         if isinstance(packet, FunctionPacket):
             self._received_function_packet(packet)
 
     def _received_function_packet(self, packet: FunctionPacket) -> None:
+        """Executes the function, with all args. Packs the return value or the exception in a data-packet and sends
+        it back. If a networking.File is returned, a FileMetaPacket + the file itself is sent."""
         func = packet.function_name
         args = packet.args
         kwargs = packet.kwargs
         try:
             ret_value = self._functions.__getattr__(func)(*args, **kwargs)
+            if isinstance(ret_value, File):
+                return self._send_file(ret_value)
         except TypeError as e:
             ret_value = e
         except AttributeError as e:
@@ -197,7 +290,19 @@ class Communicator(threading.Thread):
         data_packet = DataPacket(**ret_kwargs)
         self.send_packet(data_packet)
 
+    def _send_file(self, file: File):
+        """Creates a FileMetaPacket, that is sent and followed by the file_content."""
+        file_meta_packet = FileMetaPacket(file.src_path, file.size, file.dst_path)
+        self.send_packet(file_meta_packet)
+        with open(file.src_path, "rb") as f:
+            file_data = f.read(self.CHUNK_SIZE * 2)
+            while len(file_data) > 0:
+                self._socket_connection.send(file_data)
+                file_data = f.read(self.CHUNK_SIZE * 2)
+
     def stop(self, is_same_thread=False) -> None:
+        """Stops all listening and the thread is joined. Send processes are not stopped and it the thread first
+        stops when all data is sent."""
         if self._closed:
             logger.debug("Prevented closing already closed communicator")
         else:
@@ -224,12 +329,15 @@ class Communicator(threading.Thread):
 
 
 class PacketBuilder:
+    """Builds a packet from bytes chunk data. Bytes must be added till a packet can be built. This packet is returned"""
 
-    def __init__(self) -> None:
-        self.byte_stream = ByteStream(b"")
+    def __init__(self, byte_stream: ByteStream) -> None:
+        self.byte_stream = byte_stream
         self.current_header: Optional[Header] = None
 
     def add_chunk(self, byte_string: bytes) -> Optional[Packet]:
+        """Byte string is from receiving bytes from the tcp-connection. This function rebuilds the packet from it,
+        if there was enough data added."""
         self.byte_stream += byte_string
         if self.current_header is None and self.byte_stream.length >= Header.LENGTH_BYTES:
             self.current_header = Header.from_bytes(self.byte_stream)
@@ -242,8 +350,24 @@ class PacketBuilder:
 
 
 class MetaFunctionCommunicator(type):
+    """
+    Magic class.
+
+    This class makes it possible, that functions, that are located at the other side, and should be
+    transmitted of the network can be called, like they were local functions. The dunder functions of python play an
+    important role in this class. Python can intercept the process of getting an attribute with `__getattribute__`.
+    This function every time something is called with `x.foo` or `x.bar()`. Normally this just returns the attribute,
+    but in this case we treat every attribute (except special attributes) as a function call. This function call is
+    then packed into a function-packet with all its args and kwargs and is sent over the tcp-connection to the other
+    side. The data-packet, that is returned, is unpacked and returned to the caller. If an exception was risen at the
+    other side it also raises locally.
+
+    This class is the metaclass for following Function classes."""
 
     def __call__(cls, *args, **kwargs):
+        """A subclass can be called (not necessary). It is possible to call it with the `timeout` argument
+        (e.g. `remote_functions(timeout=2.5).function(...)`). This way it is waited till the data-packet arrives or
+        the timeout raises."""
         try:
             timeout = kwargs["timeout"]
             connector: Connector = cls.__getattr__("_connector")
@@ -253,16 +377,24 @@ class MetaFunctionCommunicator(type):
             pass
         return cls
 
-    def __getattribute__(self, item):
+    def __getattribute__(self, item: str):
+        """Intercepts the calling process of functions. To allow calling special variables there is this if block at
+        the beginning.
 
+        NOTE: that if you want to access any other attribute, you need to call it with the dunder functions, that are
+        defined in the if block."""
         if item == "__getattr__":
             return type.__getattribute__(self, item)
         if item == "__setattr__":
             return type.__setattr__
         if item == "__call__":
             return type.__call__
+        if item.startswith("__", 0, 2):
+            return type.__getattribute__(self, item)
 
         def container(*args, **kwargs) -> Any:
+            """Container works like a decorator container. The 'decoration' is, that it sends a function-packet and
+            receives and unpacks a data-packet."""
             function_name = item
             # send function packet
             connector: Connector = self.__getattr__("_connector")
@@ -289,12 +421,14 @@ class MetaFunctionCommunicator(type):
 
         return container
 
-    def __getattr__(self, item):
-        func = type.__getattribute__(self, item)
-        return func
+    def __getattr__(self, attr_name: str) -> Any:
+        """Allows accessing attributes without interception. Usage: <class_object>.__getattr__("<attribute_name>")"""
+        attribute = type.__getattribute__(self, attr_name)
+        return attribute
 
 
 class MetaSingletonConnector(type):
+    """Allows singleton like connectors. Each connector is identified, by its id."""
     _instances: Dict[int, 'Connector'] = {}
 
     def __call__(cls, *args, **kwargs) -> 'Connector':
@@ -315,6 +449,7 @@ class MetaSingletonConnector(type):
 
 
 class Connector:
+    """Super class for :class:`MultiConnector` and :class:`SingleConnector`. """
     remote_functions: Optional[Type['Functions']] = None
     local_functions: Optional[Type['Functions']] = None
 
@@ -374,7 +509,7 @@ class Connector:
 
 
 class MultiConnector(Connector, metaclass=MetaSingletonConnector):
-
+    """Connector that allows creating multiple instances. Every instance is handled like a Singleton."""
     def __init__(self, id_: int) -> None:
         self._id = id_
         self.communicator: Optional[Communicator] = None
@@ -419,6 +554,10 @@ class SingleConnector(Connector):
 
 
 class Functions(metaclass=MetaFunctionCommunicator):
+    """Static class that contains all available local and remote functions. All functions must be stored in the
+        :attr:`__dict__` attribute.
+
+            """
     _connector: Optional[Communicator] = None
 
     def __new__(cls, *args, **kwargs):

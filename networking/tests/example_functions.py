@@ -9,7 +9,7 @@
 """
 import networking as net
 
-from Logging import logger
+from networking.Logging import logger
 
 
 class _DummyServerFunctions(net.ServerFunctions):
@@ -56,6 +56,10 @@ class _DummyServerFunctions(net.ServerFunctions):
     @staticmethod
     def client_faculty(number: int) -> int:
         return client_faculty(number)
+
+    @staticmethod
+    def get_file(file_path: str, destination_path: str) -> net.File:
+        return get_file(file_path, destination_path)
 
 
 class _DummyClientFunctions(net.ServerFunctions):
@@ -162,22 +166,26 @@ def huge_args_huge_ret(*args):
 
 
 def func_in_func(start: int) -> bool:
-    ret = net.ClientPool.get().remote_functions.incrementer(start)
+    ret = net.ClientManager().get().remote_functions.incrementer(start)
     return ret + 1
 
 
 def many_func_in_func():
-    return net.ClientPool.get().remote_functions.client_faculty(5)
+    return net.ClientManager().get().remote_functions.client_faculty(5)
 
 
 def server_faculty(number: int) -> int:
     if number <= 1:
         return number
-    return number * net.ClientPool.get().remote_functions.client_faculty(number - 1)
+    return number * net.ClientManager().get().remote_functions.client_faculty(number - 1)
 
 
 def client_faculty(number: int) -> int:
     if number <= 1:
         return number
     return number * DummyServerCommunicator.remote_functions.server_faculty(number - 1)
+
+
+def get_file(file_path: str, destination_path: str) -> net.File:
+    return net.File(file_path, destination_path)
 

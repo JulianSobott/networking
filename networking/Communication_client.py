@@ -7,16 +7,22 @@
 
 @internal_use:
 """
-from typing import Union, Type
+from typing import Union, Type, Optional
 
-from Logging import logger
-from Communication_general import Connector, SingleConnector, MultiConnector, Functions, Communicator, SocketAddress
-from Packets import DataPacket
-from Data import Cryptographer
-from ID_management import IDManager
+from networking.Logging import logger
+from networking.Communication_general import SingleConnector, MultiConnector, Functions, Communicator
+from networking.Communication_general import Connector, SingleConnector, MultiConnector, Functions, Communicator, SocketAddress
+from networking.Packets import DataPacket
+from networking.Data import Cryptographer
+from networking.ID_management import IDManager
 
 
 class ServerCommunicator(SingleConnector):
+    """A static accessible class, that is responsible for communicating with the server.
+        This class needs to be overwritten. The overwritten class needs to set the attributes :code:`local_functions` and
+        :code:`remote_functions`. To call a function at the server type:
+        :code:`ServerCommunicator.remote_functions.dummy_function(x, y)`
+        """
 
     @classmethod
     def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf")):
@@ -26,6 +32,12 @@ class ServerCommunicator(SingleConnector):
 
 
 class MultiServerCommunicator(MultiConnector):
+    """A class that allows in contrast to the :class:`ServerCommunicator` multiple instances. This class also needs
+    to be overwritten, just like :class:`ServerCommunicator`. To create and use call :code:`MultiServerCommunicator(n)`,
+    where n is any number below 30. The object may not be stored, but can be called in different parts of the Code and
+    the same object is returned, like a Singleton.
+    """
+
     def connect(self, addr: SocketAddress, blocking=True, timeout=float("inf")):
         connected = super().connect(addr, blocking, timeout)
         if connected:
@@ -33,6 +45,8 @@ class MultiServerCommunicator(MultiConnector):
 
 
 class ServerFunctions(Functions):
+    """Static class that contains all available server side functions. All functions must be stored in the
+    :attr:`__dict__` attribute."""
     pass
 
 

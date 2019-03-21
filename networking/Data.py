@@ -1,38 +1,51 @@
 """
-@author: Julian Sobott
-@created: 19.10.2018
-@brief: Handling data for transmitting over network
-@description:
+:module: networking.Data
+:synopsis: Lowest level module, that manages important data for packets, mostly in bytes.
+:author: Julian Sobott
 
-Data Types that can be packed (and their limitations):
-    int: 4 bytes
-    float: None known
-    str: max length ~2**32 (at larger strings the PC runs out of RAM and crashes)
-    dict: None known
-    tuple: None known
-    bytes: None known
-    bool: None
-    NoneType: None
+public functions
+----------------
 
-@external_use:
+.. autofunction:: general_pack
 
-@internal_use:
+.. autofunction:: general_unpack
 
-@TODO_:
+.. autofunction:: pack_int_type
+
+.. autofunction:: unpack_int_type
+
+.. autofunction:: pack_int
+
+public classes
+--------------
+
+.. autoclass:: ByteStream
+    :members:
+    :undoc-members:
+
+.. autoclass:: File
+    :members:
+    :undoc-members:
+
+private functions
+-----------------
+
+.. autofunction:: _pack
+
+.. autofunction:: _unpack
 
 """
+import os
 import pickle
+from typing import Any, Union, Tuple
 from cryptography.fernet import Fernet
 
-from typing import Tuple, Any
-from utils import Ddict, load_dict_from_json, dump_dict_to_json
-from Logging import logger
+from networking.utils import Ddict, load_dict_from_json, dump_dict_to_json
 
 NUM_TYPE_BYTES = 3
 ENCODING = "utf-8"
 BYTEORDER = "big"
 NUM_INT_BYTES = 4
-
 
 types = Ddict({
     int:    0x001,
@@ -48,6 +61,7 @@ types = Ddict({
 
 
 def general_pack(*args) -> bytes:
+    """Converts all args into a bytes string. If there are non builtin data types pickle is taken for converting."""
     try:
         specific_byte_string = b"0"
         specific_byte_string += _pack(*args)
@@ -59,6 +73,8 @@ def general_pack(*args) -> bytes:
 
 
 def general_unpack(byte_stream: 'ByteStream', num_bytes=None) -> tuple:
+    """Take in a bytestream, with the bytes string from :func:`general_pack`, and converts it back into a tuple with
+    all args."""
     num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes
     byte_stream = Cryptographer.decrypt(byte_stream, num_bytes)
     num_bytes = byte_stream.remaining_length - 1
@@ -74,6 +90,8 @@ def general_unpack(byte_stream: 'ByteStream', num_bytes=None) -> tuple:
 
 
 def _pack(*args) -> bytes:
+    """Converts all args into a bytes string, like :func:`pickle.dumps`. It only supports the builtin data types.
+    See the `types` variable at the top of this module for all supported types."""
     byte_string = b""
 
     for value in args:
@@ -122,7 +140,8 @@ def _pack(*args) -> bytes:
     return byte_string
 
 
-def _unpack(bytes_) -> tuple:
+def _unpack(bytes_: Union[bytes, 'ByteStream']) -> tuple:
+    """Converts back a bytes like object to its original objects"""
     if isinstance(bytes_, bytes):
         byte_stream = ByteStream(bytes_)
     else:
@@ -167,48 +186,9 @@ def _unpack(bytes_) -> tuple:
     return tuple(values)
 
 
-class IDContainer:
-
-    TOTAL_BYTE_LENGTH = 3 * NUM_INT_BYTES + 3 * NUM_TYPE_BYTES
-
-    def __init__(self, function_id: int, outer_id: int) -> None:
-        self.function_id = function_id
-        self.global_id = outer_id
-
-    @classmethod
-    def default_init(cls):
-        return cls.__call__(-1, -1)
-
-    def pack(self) -> bytes:
-        byte_string = pack_int(self.function_id)
-        byte_string += pack_int(self.global_id)
-        return byte_string
-
-    @classmethod
-    def from_bytes(cls, byte_stream: 'ByteStream') -> 'IDContainer':
-        function_id = byte_stream.next_int()
-        outer_id = byte_stream.next_int()
-        return cls.__call__(function_id, outer_id)
-
-    def set_ids(self, function_id: int, outer_id: int):
-        self.function_id = function_id
-        self.global_id = outer_id
-
-    def get_ids(self) -> Tuple[int, int]:
-        return self.function_id, self.global_id
-
-    def __repr__(self):
-        return f"IDContainer({str(self.function_id)}, {str(self.global_id)})"
-
-    def __eq__(self, other):
-        if not isinstance(other, IDContainer):
-            return False
-        return (self.function_id == other.function_id and
-                self.global_id == other.global_id)
-
-
 class ByteStream:
-
+    """This class utilises the bytes object. Among other things, it stores the bytes string and the idx. All `next`
+    functions move the idx."""
     def __init__(self, byte_string: bytes) -> None:
         self.byte_string = byte_string
         self.idx = 0
@@ -217,6 +197,7 @@ class ByteStream:
         self.reached_end = self.remaining_length <= 0
 
     def next_int(self) -> int:
+        """Converts the next bytes into an integer."""
         byte_string = self.next_bytes(NUM_INT_BYTES)
         return int.from_bytes(byte_string, BYTEORDER, signed=True)
 
@@ -229,6 +210,9 @@ class ByteStream:
             if self.reached_end and self.idx > self.length:
                 raise IndexError(f"Byte string ran out of scope: {self.idx} > {self.length}")
 
+    def next_all_bytes(self) -> bytes:
+        return self.next_bytes(self.remaining_length)
+
     def _inc_idx(self, amount: int) -> None:
         self.idx += amount
         self.remaining_length -= amount
@@ -236,6 +220,7 @@ class ByteStream:
             self.reached_end = True
 
     def remove_consumed_bytes(self) -> None:
+        """Deletes all bytes, that are before the idx. Resets all values to fit the new bytes string"""
         self.byte_string = self.byte_string[self.idx:]
         self.length = len(self.byte_string)
         self.remaining_length = self.length
@@ -244,7 +229,7 @@ class ByteStream:
 
     def __iadd__(self, other: bytes) -> 'ByteStream':
         if not isinstance(other, bytes):
-            raise TypeError
+            raise TypeError(f"{type(other)} is not type: bytes")
         self.byte_string += other
         added_length = len(other)
         self.length += added_length
@@ -256,15 +241,31 @@ class ByteStream:
         return str(self.byte_string[:self.idx]) + "|" + str(self.byte_string[self.idx:])
 
 
+class File:
+    """This class represents a file that should be sent. If a file is to be sent, an object of this class shall be
+    sent with the proper paths. This internally sends the file."""
+    def __init__(self, src_path: str, dst_path: str) -> None:
+        self.src_path = src_path
+        self.dst_path = dst_path
+        self.size = os.path.getsize(src_path)
+
+    @classmethod
+    def from_meta_packet(cls, file_meta_packet):
+        return cls(file_meta_packet.src_path, file_meta_packet.dst_path)
+
+
 def pack_int_type(int_type: int) -> bytes:
+    """Packs a type described as an integer into bytes"""
     return int.to_bytes(int_type, NUM_TYPE_BYTES, BYTEORDER)
 
 
 def unpack_int_type(full_byte_string: bytes) -> int:
+    """Unpacks bytes into a type described as an integer"""
     return int.from_bytes(full_byte_string[:NUM_TYPE_BYTES], BYTEORDER)
 
 
 def pack_int(num: int) -> bytes:
+    """Packs any integer number into bytes"""
     return int.to_bytes(num, NUM_INT_BYTES, BYTEORDER, signed=True)
 
 
