@@ -51,24 +51,17 @@ class ServerFunctions(Functions):
 
 
 def exchange_keys(connector: Union['Connector', Type['SingleConnector']]):
-    # generate public key + private key TODO
+    # generate public key + private key
     private_key, public_key = Cryptographer.generate_key_pair()
-    message = b"Hello world"
-    ciphertext = Cryptographer.encrypt_pgp_msg(message, public_key)
-    plain_text = Cryptographer.decrypt_pgp_msg(ciphertext, private_key)
-
-
+    serialized_public_key = Cryptographer.serialize_public_key(public_key)
     IDManager(connector.get_id()).append_dummy_functions(2)
     # send public key
-    public_key_packet = DataPacket(public_key=public_key)
+    public_key_packet = DataPacket(public_key=serialized_public_key)
     connector.communicator.send_packet(public_key_packet)
     # wait for communication key
     communication_packet = connector.communicator.wait_for_response()
     encrypted_communication_key = communication_packet.data["communication_key"]
-    # decrypt key with private key TODO
-    communication_key = encrypted_communication_key
+    # decrypt key with private key
+    communication_key = Cryptographer.decrypt_pgp_msg(encrypted_communication_key, private_key)
     # set communication key
     Cryptographer.set_key(communication_key)
-
-if __name__ == '__main__':
-    exchange_keys(None)

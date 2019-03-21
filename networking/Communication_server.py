@@ -20,7 +20,6 @@ from networking.Packets import DataPacket
 __all__ = ["ClientManager", "ClientFunctions"]
 
 
-
 class MetaClientManager(type):
     """Allows that multiple ClientManagers can be created. Stores every instance of a ClientManager"""
     _instances: Dict[SocketAddress, 'ClientManager'] = {}
@@ -181,14 +180,16 @@ class ClientFunctions(Functions):
 
 def exchange_keys(client_communicator: ClientCommunicator):
     # generate communication_key TODO
-    communication_key = b"communication_key"
+    serialized_communication_key = Cryptographer.generate_communication_key()
+
     # wait for public key
     IDManager(client_communicator.id).append_dummy_functions(2)
     public_key_packet = client_communicator.communicator.wait_for_response()
-    public_key = public_key_packet.data["public_key"]
-    # encrypt communication key with public key TODO
-    encrypted_communication_key = communication_key
+    serialized_public_key = public_key_packet.data["public_key"]
+    public_key = Cryptographer.deserialize_public_key(serialized_public_key)
+
+    encrypted_communication_key = Cryptographer.encrypt_pgp_msg(serialized_communication_key, public_key)
     # send communication key
     communication_packet = DataPacket(communication_key=encrypted_communication_key)
     client_communicator.communicator.send_packet(communication_packet)
-    Cryptographer.set_key(communication_key)
+    Cryptographer.set_key(serialized_communication_key)

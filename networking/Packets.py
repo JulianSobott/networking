@@ -260,7 +260,7 @@ class FileMetaPacket(Packet):
 
     @classmethod
     def from_bytes(cls, header: Header, byte_stream: ByteStream) -> 'FileMetaPacket':
-        num_bytes = header.specific_data_size - 1
+        num_bytes = header.specific_data_size
         all_data = general_unpack(byte_stream, num_bytes)
         src_path: str = all_data[0]
         dst_path: Optional[str] = all_data[1]

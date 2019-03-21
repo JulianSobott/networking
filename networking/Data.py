@@ -42,9 +42,11 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend as crypto_default_backend
 
 from networking.utils import Ddict, load_dict_from_json, dump_dict_to_json
+from networking.Logging import logger
 
 NUM_TYPE_BYTES = 3
 ENCODING = "utf-8"
@@ -295,8 +297,18 @@ class Cryptographer:
     def decrypt(byte_stream: ByteStream, num_bytes) -> ByteStream:
         if Cryptographer.f is None:
             return byte_stream
-        byte_string = Cryptographer.f.decrypt(byte_stream.next_bytes(num_bytes))
+        encrypted_message = byte_stream.next_bytes(num_bytes)
+        try:
+            byte_string = Cryptographer.f.decrypt(encrypted_message)
+        except:
+            return ByteStream(encrypted_message) # Cheat! Necessary for key exchange, when client and server both
+            # run in the same process. Because the key attribute is static
         return ByteStream(byte_string)
+
+    @staticmethod
+    def generate_communication_key():
+        """Generates a symmetric key"""
+        return Fernet.generate_key()
 
     @staticmethod
     def generate_key_pair():
@@ -328,6 +340,20 @@ class Cryptographer:
                 algorithm=hashes.SHA256(),
                 label=None
             )
+        )
+
+    @staticmethod
+    def serialize_public_key(public_key) -> bytes:
+        return public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+    @staticmethod
+    def deserialize_public_key(serialized_key: bytes) -> rsa.RSAPublicKey:
+        return serialization.load_pem_public_key(
+            serialized_key,
+            backend=crypto_default_backend()
         )
 
     @staticmethod
