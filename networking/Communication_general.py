@@ -60,7 +60,7 @@ import utils
 from networking.Logging import logger
 from networking.Packets import Packet, DataPacket, FunctionPacket, FileMetaPacket, Header, packets as packet_types
 from networking.ID_management import IDManager, remove_manager
-from networking.Data import ByteStream, File
+from networking.Data import ByteStream, File, Cryptographer
 
 SocketAddress = Tuple[str, int]
 
@@ -462,14 +462,16 @@ class Connector:
 
     communicator: Optional[Communicator] = None
     _id = to_client_id(0)
+    _exchanged_keys = False
 
     @staticmethod
     def connect(connector: Union['Connector', Type['SingleConnector']], addr: SocketAddress, blocking=True,
-                timeout=float("inf")) -> bool:
+                timeout=float("inf"), exchange_keys_function=None) -> bool:
         if connector.communicator is None:
             connector.communicator = Communicator(addr, id_=connector._id, local_functions=connector.local_functions)
             try:
                 connector.remote_functions.__setattr__(connector.remote_functions, "_connector", connector)
+                # self argument, must be provided
             except TypeError:
                 raise AttributeError("Communicator functions are not set.")
             connector.communicator.start()
@@ -484,6 +486,8 @@ class Connector:
                     logger.warning(f"Stopped trying to connect to server after {int(waited)} seconds due to timeout")
                     connector.communicator.stop()
                     # raise TimeoutError(f"Stopped trying to connect to server after {int(waited)} seconds")
+                elif ENCRYPTED_COMMUNICATION is True:
+                    exchange_keys_function(connector)
             if blocking:
                 try_connect()
             else:
@@ -520,9 +524,11 @@ class MultiConnector(Connector, metaclass=MetaSingletonConnector):
     def __init__(self, id_: int) -> None:
         self._id = to_client_id(id_)
         self.communicator: Optional[Communicator] = None
+        self._exchanged_keys = False
 
-    def connect(self: Connector, addr: SocketAddress, blocking=True, timeout=float("inf")) -> bool:
-        return super().connect(self, addr, blocking, timeout)
+    def connect(self: Connector, addr: SocketAddress, blocking=True, timeout=float("inf"), exchange_keys_function=None)\
+            -> bool:
+        return super().connect(self, addr, blocking, timeout, exchange_keys_function)
 
     def close_connection(self: Connector, blocking=True, timeout=float("inf")) -> None:
         return super().close_connection(self, blocking, timeout)
@@ -539,13 +545,17 @@ class MultiConnector(Connector, metaclass=MetaSingletonConnector):
     def get_id(self):
         return super().get_id(self)
 
+    @property
+    def exchanged_keys(self):
+        return self._exchanged_keys
+
 
 class SingleConnector(Connector):
     """Only static accessible. Therefore only a single connector (per address) per machine possible"""
 
     @classmethod
-    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf")) -> bool:
-        return super().connect(cls, addr, blocking, timeout)
+    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf"), exchange_keys_function=None) -> bool:
+        return super().connect(cls, addr, blocking, timeout, exchange_keys_function)
 
     @classmethod
     def close_connection(cls, blocking=True, timeout=float("inf")) -> None:

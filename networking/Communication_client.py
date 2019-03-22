@@ -26,10 +26,8 @@ class ServerCommunicator(SingleConnector):
         """
 
     @classmethod
-    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf")) -> bool:
-        connected = super().connect(addr, blocking, timeout)
-        if connected and networking.Communication_general.ENCRYPTED_COMMUNICATION:
-            exchange_keys(cls)
+    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf"), **kwargs) -> bool:
+        connected = super().connect(addr, blocking, timeout, exchange_keys)
         return connected
 
 
@@ -40,10 +38,8 @@ class MultiServerCommunicator(MultiConnector):
     the same object is returned, like a Singleton.
     """
 
-    def connect(self, addr: SocketAddress, blocking=True, timeout=float("inf")) -> bool:
-        connected = super().connect(addr, blocking, timeout)
-        if connected and networking.Communication_general.ENCRYPTED_COMMUNICATION:
-            exchange_keys(self)
+    def connect(self, addr: SocketAddress, blocking=True, timeout=float("inf"), **kwargs) -> bool:
+        connected = super().connect(addr, blocking, timeout, exchange_keys)
         return connected
 
 
@@ -68,3 +64,4 @@ def exchange_keys(connector: Union['Connector', Type['SingleConnector']]):
     communication_key = Cryptographer.decrypt_pgp_msg(encrypted_communication_key, private_key)
     # set communication key
     Cryptographer.set_key(communication_key)
+    connector._exchanged_keys = True

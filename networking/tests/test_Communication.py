@@ -52,6 +52,9 @@ class StdOutEqualizer:
 
 class TestConnecting(CommunicationTestCase):
 
+    def setUp(self):
+        DummyServerCommunicator._exchanged_keys = False
+
     def test_single_client_connect(self):
         DummyServerCommunicator.connect(dummy_address, timeout=0)
         self.assertEqual(DummyServerCommunicator.remote_functions.__getattr__("_connector"), DummyServerCommunicator)
@@ -125,8 +128,9 @@ class TestConnecting(CommunicationTestCase):
     def test_server_turn_on(self):
         DummyServerCommunicator.connect(dummy_address, blocking=False)
         with ClientManager(dummy_address, DummyClientCommunicator) as listener:
-            wait_till_condition(lambda: len(listener.clients) == 1, timeout=2)
+            wait_till_condition(lambda: DummyServerCommunicator._exchanged_keys is True, timeout=2)
             self.assertEqual(len(listener.clients), 1)
+            self.assertEqual(True, DummyServerCommunicator._exchanged_keys)
             DummyServerCommunicator.close_connection()
             wait_till_joined(DummyServerCommunicator.communicator, timeout=2)
             wait_till_condition(lambda: len(listener.clients) == 0, timeout=2)
