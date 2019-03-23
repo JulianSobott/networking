@@ -38,12 +38,24 @@ public functions
 ----------------
 
 .. autofunction:: to_server_id
+.. autofunction:: to_client_id
+.. autofunction:: set_encrypted_communication
 
 private classes
 -----------------
 
+.. autoclass:: PacketBuilder
+    :members:
+    :undoc-members:
+
 .. autoclass:: MetaFunctionCommunicator
     :members: __call__, __getattribute__, __getattr__
+
+.. autoclass:: MetaSingletonConnector
+    :members:
+    :undoc-members:
+
+.. autoclass:: FunctionExecutionThread
 
 
 Nice to haves
@@ -73,6 +85,7 @@ ENCRYPTED_COMMUNICATION = True
 
 
 def set_encrypted_communication(value: bool):
+    """Allows to deactivate encrypted communication."""
     global ENCRYPTED_COMMUNICATION
     ENCRYPTED_COMMUNICATION = value
 
@@ -282,8 +295,6 @@ class Communicator(threading.Thread):
                 appended_data = data[remaining_bytes:]
                 file.write(write_data)
                 remaining_bytes -= len(write_data)
-                #if remaining_bytes % 10000 == 0:
-                #    logger.debug(remaining_bytes)
             plain_byte_stream += appended_data
 
     def _send_bytes(self, byte_string: bytes) -> bool:
@@ -486,7 +497,14 @@ class MetaSingletonConnector(type):
 
 
 class Connector:
-    """Super class for :class:`MultiConnector` and :class:`SingleConnector`. """
+    """Super class for :class:`MultiConnector` and :class:`SingleConnector`. The subclasses are responsible for the
+    connection and communication.
+
+    :ivar remote_functions: Class with all functions, that are available at the remote side.
+    :ivar local_functions: Class with all functions, that are locally available.
+    :ivar communicator: instance of :class:`Communicator`.
+    :ivar _id:
+    """
     remote_functions: Optional[Type['Functions']] = None
     local_functions: Optional[Type['Functions']] = None
 
@@ -497,6 +515,9 @@ class Connector:
     @staticmethod
     def connect(connector: Union['Connector', Type['SingleConnector']], addr: SocketAddress, blocking=True,
                 timeout=float("inf"), exchange_keys_function=None) -> bool:
+        """Connects the passed `connector` to the server. This is done, by creating a new :class:`Communicator`,
+        that connects to the server. Also creates a relation between this connector and the remote_functions. The
+        connection process can be executed in a separate thread."""
         if connector.communicator is None:
             connector.communicator = Communicator(addr, id_=connector._id, local_functions=connector.local_functions)
             try:
@@ -529,6 +550,8 @@ class Connector:
     @staticmethod
     def close_connection(connector: Union['Connector', Type['SingleConnector']], blocking=True,
                          timeout=float("inf")) -> None:
+        """Closes the connection to the server. If blocking is True, it will wait till the communicator stopped the
+        connection."""
         if connector.communicator is not None:
             connector.communicator.stop()
             if blocking:
@@ -583,7 +606,8 @@ class MultiConnector(Connector, metaclass=MetaSingletonConnector):
 
 
 class SingleConnector(Connector):
-    """Only static accessible. Therefore only a single connector (per address) per machine possible"""
+    """Only static accessible. Therefore only a single connector (per address) per machine possible. For most
+    applications this class is sufficient and the :class:`MultiConnector` isn't needed."""
 
     @classmethod
     def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf"), exchange_keys_function=None) -> bool:
@@ -614,7 +638,7 @@ class Functions(metaclass=MetaFunctionCommunicator):
 
 
 class FunctionExecutionThread(threading.Thread):
-
+    """Executes a received function in a separate thread."""
     def __init__(self, id_: int, function_packet: FunctionPacket, handle_packet: Callable) -> None:
         super().__init__(name=f"FunctionExecutionThread_{id_}")
         self._id = id_
