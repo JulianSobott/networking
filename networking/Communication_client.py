@@ -28,9 +28,7 @@ private functions
 from typing import Union, Type, Optional
 
 from networking.Logging import logger
-from networking.Communication_general import SingleConnector, MultiConnector, Functions, Communicator
-import networking.Communication_general
-from networking.Communication_general import Connector, SingleConnector, MultiConnector, Functions, Communicator, SocketAddress
+from networking.Communication_general import Connector, SingleConnector, MultiConnector, Functions, SocketAddress
 from networking.Packets import DataPacket
 from networking.ID_management import IDManager
 

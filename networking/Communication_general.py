@@ -68,10 +68,9 @@ import socket
 import time
 from typing import Tuple, List, Dict, Optional, Callable, Any, Type, Union
 
-import utils
 from networking.Cryptography import Cryptographer
 from networking.Logging import logger
-from networking.Packets import Packet, DataPacket, FunctionPacket, FileMetaPacket, Header, packets as packet_types
+from networking.Packets import Packet, DataPacket, FunctionPacket, FileMetaPacket, Header
 from networking.ID_management import IDManager, remove_manager
 from networking.Data import ByteStream, File
 

@@ -47,7 +47,7 @@ private classes
 """
 from typing import List, Optional, Dict, Tuple
 
-from Data import NUM_INT_BYTES, NUM_TYPE_BYTES, pack_int
+from networking.Data import NUM_INT_BYTES, NUM_TYPE_BYTES, pack_int
 from networking.Logging import logger
 from networking.Packets import FunctionPacket, DataPacket, FileMetaPacket, Packet
 
