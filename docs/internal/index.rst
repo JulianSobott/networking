@@ -15,3 +15,4 @@ just want to use the `networking` library for your project.
    packets
    communication_general
    communication_server
+   communication_client

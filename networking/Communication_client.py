@@ -1,11 +1,29 @@
 """
-@author: Julian Sobott
-@brief:
-@description:
+:module: networking.Communication_server
+:synopsis: Classes that are needed at the client side.
+:author: Julian Sobott
 
-@external_use:
+public classes
+----------------
 
-@internal_use:
+.. autoclass:: ServerCommunicator
+    :members:
+    :undoc-members: connect
+
+.. autoclass:: MultiServerCommunicator
+    :members:
+    :undoc-members: connect
+
+.. autoclass:: ServerFunctions
+    :members:
+    :undoc-members:
+
+
+private functions
+------------------
+
+.. autofunction:: exchange_keys
+
 """
 from typing import Union, Type, Optional
 
@@ -49,6 +67,9 @@ class ServerFunctions(Functions):
 
 
 def exchange_keys(connector: Union['Connector', Type['SingleConnector']]):
+    """Exchanges a symmetric `communication key` with the server. The `communication key` is received from the
+    server. It is decrypted with the private key. After this function, all packets are encrypted with this
+    `communication key`"""
     # generate public key + private key
     cryptographer = connector.communicator.cryptographer
     cryptographer.generate_pgp_key_pair()
