@@ -16,3 +16,4 @@ just want to use the `networking` library for your project.
    communication_general
    communication_server
    communication_client
+   cryptography

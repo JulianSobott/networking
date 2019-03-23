@@ -3,6 +3,12 @@
 :synopsis: Access to Cryptography
 :author: Julian Sobott
 
+public classes
+---------------
+
+.. autoclass:: Cryptographer
+   :members:
+   :undoc-members:
 """
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -13,7 +19,14 @@ from cryptography.hazmat.backends import default_backend as crypto_default_backe
 
 
 class Cryptographer:
+    """Functions for encryption. Supports symmetric and asymmetric keys.
 
+    :ivar is_encrypted_communication: Signals whether the messages are plain or encrypted.
+    :ivar _communication_key: All messages are encrypted with this key.
+    :ivar _public_key: Needed to exchange the communication key.
+    :ivar _private_key: Needed to exchange the communication key.
+    :ivar _fernet: Decrypts and encrypts messages.
+    """
     def __init__(self):
         self._communication_key = None
         self._public_key = None
@@ -27,6 +40,7 @@ class Cryptographer:
 
     @communication_key.setter
     def communication_key(self, key):
+        """Sets the communication key, is_encrypted_communication and fernet"""
         if self.communication_key is None:
             self.is_encrypted_communication = True
             self._fernet = Fernet(key)
@@ -89,20 +103,3 @@ class Cryptographer:
                 label=None
             )
         )
-
-if __name__ == '__main__':
-    from cryptography.fernet import Fernet
-    import utils
-    key = Fernet.generate_key()
-    f = Fernet(key)
-
-    @utils.time_func
-    def encrypt():
-        with open("tests/dummy.txt", "rb") as in_file:
-            with open("tests/encrypted.txt", "wb") as out_file:
-               while True:
-                   chunk = in_file.read(2048)
-                   if len(chunk) == 0:
-                       break
-                   out_file.write(f.encrypt(chunk))
-    encrypt()
