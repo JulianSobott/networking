@@ -282,8 +282,8 @@ class Communicator(threading.Thread):
                 appended_data = data[remaining_bytes:]
                 file.write(write_data)
                 remaining_bytes -= len(write_data)
-                if remaining_bytes % 10000 == 0:
-                    logger.debug(remaining_bytes)
+                #if remaining_bytes % 10000 == 0:
+                #    logger.debug(remaining_bytes)
             plain_byte_stream += appended_data
 
     def _send_bytes(self, byte_string: bytes) -> bool:

@@ -90,5 +90,8 @@ Classes
 -------
 
 .. autoclass:: networking.Communication_general.Functions
+    :noindex:
 .. autoclass:: networking.Communication_server.ClientFunctions
+    :noindex:
 .. autoclass:: networking.Communication_client.ServerFunctions
+    :noindex:

@@ -1,14 +1,40 @@
 """
-@author: Julian Sobott
-@brief:
-@description:
+:module: networking.Communication_server
+:synopsis: Classes that are needed at the server side.
+:author: Julian Sobott
 
-@external_use:
+public classes
+----------------
 
-@internal_use:
+.. autoclass:: ClientManager
+    :members: start, get, mainloop, stop_connections, stop_listening
+    :undoc-members:
+    :exclude-members: run
+
+.. autoclass:: ClientFunctions
+    :members:
+    :undoc-members:
+
+private classes
+----------------
+
+.. autoclass:: MetaClientManager
+    :members:
+    :undoc-members:
+
+.. autoclass:: ClientCommunicator
+    :members:
+    :undoc-members:
+
+private functions
+------------------
+
+.. autofunction:: exchange_keys
+
 """
 import threading
 import socket
+import time
 from typing import Dict, Type, Union, Optional
 
 from networking.Logging import logger
@@ -48,7 +74,8 @@ class MetaClientManager(type):
 
 class ClientManager(threading.Thread, metaclass=MetaClientManager):
     """This class accepts new clients and stores them in an array. Provides access to each client. Necessary for every
-    server. The start() method will start the ClientManager to listen for new clients."""
+    server. The :func:`start()` method will start the ClientManager to listen for new clients. It is also possible to
+    use this class as context-manager with the `with` statement."""
 
     def __init__(self, address: SocketAddress = None, client_communicator: Type['ClientCommunicator'] = None) -> None:
         super().__init__(name="ClientManager")
@@ -59,6 +86,10 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
         self._address = address
         self._exit = threading.Event()
         self._client_communicator = client_communicator
+
+    def start(self):
+        """Start listening to new connections and accepts them"""
+        super().start()
 
     def run(self) -> None:
         try:
@@ -81,7 +112,7 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
                 client_id = self._produce_next_client_id()
                 client_communicator_id = to_server_id(client_id)
                 client = self._client_communicator(client_communicator_id, self._address, connection,
-                                                   self.remove_disconnected_client)
+                                                   self._remove_disconnected_client)
                 self.clients[client_communicator_id] = client
             except OSError:
                 if self._is_on:
@@ -114,7 +145,15 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
         assert isinstance(self.clients[client_id], ClientCommunicator), "Previous checks didnt handle all cases"
         return self.clients[client_id]
 
-    def remove_disconnected_client(self, communicator: Communicator) -> None:
+    def mainloop(self):
+        """Runs the server till it is stopped by a `KeyboardInterrupt`"""
+        while self._is_on:
+            try:
+                time.sleep(5)
+            except KeyboardInterrupt:
+                break
+
+    def _remove_disconnected_client(self, communicator: Communicator) -> None:
         """Called when one side stops"""
         try:
             self.clients.pop(communicator.get_id())
@@ -144,8 +183,14 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
 
 class ClientCommunicator(Connector):
     """A static accessible class, that is responsible for communicating with a client.
-    This class only needs to be overwritten, but is only used internally. The overwritten class needs to set the
-    attributes :code:`local_functions` and :code:`remote_functions`. """
+    This class needs to be overwritten, but is only used internally. The overwritten class needs to set the
+    attributes :code:`local_functions` and :code:`remote_functions`.
+
+    :ivar communicator: instance of :class:`networking.Communication_general.Communicator`
+    :ivar remote_functions: All functions, that are available at the client side.
+        instance of: :class:`networking.Communication_server.ClientFunctions`
+    :ivar local_functions: All functions, that are available at the server side.
+        instance of: :class:`networking.Communication_client.ServerFunctions`"""
 
     def __init__(self, id_: int, address: SocketAddress, connection: socket.socket, on_close):
         super().__init__()
@@ -180,6 +225,8 @@ class ClientFunctions(Functions):
 
 
 def exchange_keys(client_communicator: ClientCommunicator):
+    """Exchanges a symmetric `communication key` with the client. The `communication key` is encrypted,
+    with the public key of the client. After this function, all packets are encrypted with this `communication key`"""
     # generate communication_key#
     cryptographer = client_communicator.communicator.cryptographer
     serialized_communication_key = cryptographer.generate_communication_key()
