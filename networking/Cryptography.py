@@ -19,6 +19,7 @@ class Cryptographer:
         self._public_key = None
         self._private_key = None
         self._fernet = None
+        self.is_encrypted_communication = False
 
     @property
     def communication_key(self):
@@ -27,15 +28,16 @@ class Cryptographer:
     @communication_key.setter
     def communication_key(self, key):
         if self.communication_key is None:
+            self.is_encrypted_communication = True
             self._communication_key = key
 
     def encrypt(self, byte_string: bytes) -> bytes:
-        if self._fernet is None:
+        if not self.is_encrypted_communication:
             return byte_string
         return self._fernet.encrypt(byte_string)
 
     def decrypt(self, byte_string: bytes) -> bytes:
-        if self._fernet is None:
+        if not self.is_encrypted_communication:
             return byte_string
         return self._fernet.decrypt(byte_string)
 

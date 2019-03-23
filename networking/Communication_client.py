@@ -14,7 +14,6 @@ from networking.Communication_general import SingleConnector, MultiConnector, Fu
 import networking.Communication_general
 from networking.Communication_general import Connector, SingleConnector, MultiConnector, Functions, Communicator, SocketAddress
 from networking.Packets import DataPacket
-from networking.Data import Cryptographer
 from networking.ID_management import IDManager
 
 
@@ -51,8 +50,9 @@ class ServerFunctions(Functions):
 
 def exchange_keys(connector: Union['Connector', Type['SingleConnector']]):
     # generate public key + private key
-    private_key, public_key = Cryptographer.generate_key_pair()
-    serialized_public_key = Cryptographer.serialize_public_key(public_key)
+    cryptographer = connector.communicator.cryptographer
+    cryptographer.generate_pgp_key_pair()
+    serialized_public_key = cryptographer.get_serialized_public_key()
     IDManager(connector.get_id()).append_dummy_functions(2)
     # send public key
     public_key_packet = DataPacket(public_key=serialized_public_key)
@@ -61,7 +61,7 @@ def exchange_keys(connector: Union['Connector', Type['SingleConnector']]):
     communication_packet = connector.communicator.wait_for_response()
     encrypted_communication_key = communication_packet.data["communication_key"]
     # decrypt key with private key
-    communication_key = Cryptographer.decrypt_pgp_msg(encrypted_communication_key, private_key)
+    communication_key = cryptographer.decrypt_pgp_msg(encrypted_communication_key)
     # set communication key
-    Cryptographer.set_key(communication_key)
+    cryptographer.communication_key = communication_key
     connector._exchanged_keys = True

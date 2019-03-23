@@ -8,7 +8,6 @@ from networking.Communication_server import ClientManager, ClientFunctions, Clie
 from networking.Communication_general import to_server_id
 import networking.Communication_general
 from networking.Logging import logger
-from networking.Data import Cryptographer
 
 from networking.tests.example_functions import DummyPerson, DummyServerCommunicator, DummyClientCommunicator, \
     DummyMultiServerCommunicator
@@ -23,7 +22,6 @@ class CommunicationTestCase(unittest.TestCase):
         DummyServerCommunicator.close_connection()
         MultiServerCommunicator.close_all_connections()
         MetaClientManager.tear_down()
-        Cryptographer.tear_down()
 
     def setUp(self):
         DummyMultiServerCommunicator.close_all_connections()

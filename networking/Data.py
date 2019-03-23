@@ -37,13 +37,7 @@ private functions
 """
 import os
 import pickle
-from typing import Any, Union, Tuple
-from cryptography.fernet import Fernet
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend as crypto_default_backend
+from typing import Any, Union
 
 from networking.utils import Ddict, load_dict_from_json, dump_dict_to_json
 from networking.Logging import logger
@@ -74,15 +68,12 @@ def general_pack(*args) -> bytes:
     except Exception:
         specific_byte_string = b"1"
         specific_byte_string += pickle.dumps(args)
-    encrypted_byte_string = Cryptographer.encrypt(specific_byte_string)
-    return encrypted_byte_string
+    return specific_byte_string
 
 
 def general_unpack(byte_stream: 'ByteStream', num_bytes=None) -> tuple:
     """Take in a bytestream, with the bytes string from :func:`general_pack`, and converts it back into a tuple with
     all args."""
-    num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes
-    byte_stream = Cryptographer.decrypt(byte_stream, num_bytes)
     num_bytes = byte_stream.remaining_length - 1
     uses_pickle = byte_stream.next_bytes(1)
     if str(uses_pickle, ENCODING) == "1":
@@ -276,87 +267,3 @@ def unpack_int_type(full_byte_string: bytes) -> int:
 def pack_int(num: int) -> bytes:
     """Packs any integer number into bytes"""
     return int.to_bytes(num, NUM_INT_BYTES, BYTEORDER, signed=True)
-
-
-class Cryptographer:
-    key = None
-    f = None
-
-    @staticmethod
-    def set_key(key):
-        Cryptographer.key = key
-        Cryptographer.f = Fernet(key)
-
-    @staticmethod
-    def encrypt(byte_string: bytes) -> bytes:
-        if Cryptographer.f is None:
-            return byte_string
-        return Cryptographer.f.encrypt(byte_string)
-
-    @staticmethod
-    def decrypt(byte_stream: ByteStream, num_bytes) -> ByteStream:
-        if Cryptographer.f is None:
-            return byte_stream
-        encrypted_message = byte_stream.next_bytes(num_bytes)
-        try:
-            byte_string = Cryptographer.f.decrypt(encrypted_message)
-        except:
-            return ByteStream(encrypted_message) # Cheat! Necessary for key exchange, when client and server both
-            # run in the same process. Because the key attribute is static
-        return ByteStream(byte_string)
-
-    @staticmethod
-    def generate_communication_key():
-        """Generates a symmetric key"""
-        return Fernet.generate_key()
-
-    @staticmethod
-    def generate_key_pair():
-        private_key = rsa.generate_private_key(
-            backend=crypto_default_backend(),
-            public_exponent=65537,
-            key_size=2048
-        )
-        public_key = private_key.public_key()
-        return private_key, public_key
-
-    @staticmethod
-    def encrypt_pgp_msg(message: bytes, public_key) -> bytes:
-        return public_key.encrypt(
-            message,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-
-    @staticmethod
-    def decrypt_pgp_msg(ciphertext: bytes, private_key) -> bytes:
-        return private_key.decrypt(
-            ciphertext,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None
-            )
-        )
-
-    @staticmethod
-    def serialize_public_key(public_key) -> bytes:
-        return public_key.public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-
-    @staticmethod
-    def deserialize_public_key(serialized_key: bytes) -> rsa.RSAPublicKey:
-        return serialization.load_pem_public_key(
-            serialized_key,
-            backend=crypto_default_backend()
-        )
-
-    @staticmethod
-    def tear_down():
-        Cryptographer.key = None
-        Cryptographer.f = None

@@ -14,7 +14,6 @@ from typing import Dict, Type, Union, Optional
 from networking.Logging import logger
 from networking.Communication_general import Communicator, Connector, SocketAddress, Functions, to_server_id
 import networking.Communication_general
-from networking.Data import Cryptographer
 from networking.ID_management import IDManager
 from networking.Packets import DataPacket
 
@@ -181,17 +180,18 @@ class ClientFunctions(Functions):
 
 
 def exchange_keys(client_communicator: ClientCommunicator):
-    # generate communication_key
-    serialized_communication_key = Cryptographer.generate_communication_key()
+    # generate communication_key#
+    cryptographer = client_communicator.communicator.cryptographer
+    serialized_communication_key = cryptographer.generate_communication_key()
 
     # wait for public key
     IDManager(client_communicator.id).append_dummy_functions(2)
     public_key_packet = client_communicator.communicator.wait_for_response()
     serialized_public_key = public_key_packet.data["public_key"]
-    public_key = Cryptographer.deserialize_public_key(serialized_public_key)
+    cryptographer.public_key_from_serialized_key(serialized_public_key)
 
-    encrypted_communication_key = Cryptographer.encrypt_pgp_msg(serialized_communication_key, public_key)
+    encrypted_communication_key = cryptographer.encrypt_pgp_msg(serialized_communication_key)
     # send communication key
     communication_packet = DataPacket(communication_key=encrypted_communication_key)
     client_communicator.communicator.send_packet(communication_packet)
-    Cryptographer.set_key(serialized_communication_key)
+    cryptographer.communication_key = serialized_communication_key
