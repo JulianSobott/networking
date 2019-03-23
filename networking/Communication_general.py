@@ -213,9 +213,11 @@ class Communicator(threading.Thread):
             Optional[bytes]:
         """Returns every chunk, that can be decrypted"""
         data = plain_byte_stream.next_all_bytes()
+        plain_byte_stream.remove_consumed_bytes()
         if len(data) > 0:
             return data
         encrypted_data = encrypted_byte_stream.next_all_bytes()
+        encrypted_byte_stream.remove_consumed_bytes()
         try:
             while True:
                 chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
@@ -268,23 +270,31 @@ class Communicator(threading.Thread):
         """Receives bytes, till the file is fully received. The file is saved at the destination, given in the
         file_meta_packet."""
         file_path = file_meta_packet.dst_path
-        existing_bytes = byte_stream.next_all_bytes()
+        existing_bytes = plain_byte_stream.next_all_bytes()
         with open(file_path, "wb+") as file:
             file.write(existing_bytes)
         remaining_bytes = file_meta_packet.file_size - len(existing_bytes)
+        appended_data = b""
         with open(file_path, "ab") as file:
             while remaining_bytes > 0:
-                num_next_bytes = min(self.CHUNK_SIZE, remaining_bytes)
-                data = self._recv_data(byte_stream, num_next_bytes)
-                file.write(data)
-                remaining_bytes -= len(data)
+                data = self._recv_data(plain_byte_stream, encrypted_byte_stream)
+                write_data = data[:remaining_bytes]
+                appended_data = data[remaining_bytes:]
+                file.write(write_data)
+                remaining_bytes -= len(write_data)
+                if remaining_bytes % 10000 == 0:
+                    logger.debug(remaining_bytes)
+            plain_byte_stream += appended_data
 
     def _send_bytes(self, byte_string: bytes) -> bool:
         if not self._is_connected:
             self._connect(timeout=2)
         try:
             encrypted_message = self.cryptographer.encrypt(byte_string)
-            send_message = encrypted_message + b"%%"
+            if self.cryptographer.is_encrypted_communication:
+                send_message = encrypted_message + b"%%"
+            else:
+                send_message = encrypted_message
             sent = self._socket_connection.sendall(send_message)
             # returns None on success
             return sent is None
@@ -324,8 +334,7 @@ class Communicator(threading.Thread):
         with open(file.src_path, "rb") as f:
             file_data = f.read(self.CHUNK_SIZE)
             while len(file_data) > 0:
-                # TODO: encrypt file data
-                self._socket_connection.sendall(file_data)
+                self._send_bytes(file_data)
                 file_data = f.read(self.CHUNK_SIZE)
 
     def stop(self, is_same_thread=False) -> None:

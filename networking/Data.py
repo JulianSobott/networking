@@ -74,10 +74,9 @@ def general_pack(*args) -> bytes:
 def general_unpack(byte_stream: 'ByteStream', num_bytes=None) -> tuple:
     """Take in a bytestream, with the bytes string from :func:`general_pack`, and converts it back into a tuple with
     all args."""
-    num_bytes = byte_stream.remaining_length - 1
     uses_pickle = byte_stream.next_bytes(1)
     if str(uses_pickle, ENCODING) == "1":
-        num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes
+        num_bytes = byte_stream.remaining_length if num_bytes is None else num_bytes - 1
         bytes_string = byte_stream.next_bytes(num_bytes)
         data = pickle.loads(bytes_string)
     else:

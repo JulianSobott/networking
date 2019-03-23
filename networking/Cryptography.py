@@ -89,3 +89,20 @@ class Cryptographer:
                 label=None
             )
         )
+
+if __name__ == '__main__':
+    from cryptography.fernet import Fernet
+    import utils
+    key = Fernet.generate_key()
+    f = Fernet(key)
+
+    @utils.time_func
+    def encrypt():
+        with open("tests/dummy.txt", "rb") as in_file:
+            with open("tests/encrypted.txt", "wb") as out_file:
+               while True:
+                   chunk = in_file.read(2048)
+                   if len(chunk) == 0:
+                       break
+                   out_file.write(f.encrypt(chunk))
+    encrypt()
