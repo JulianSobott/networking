@@ -12,4 +12,4 @@ from networking.Data import File
 import networking.utils
 import networking.Logging
 
-networking.Logging.logger.setLevel(40)
+#networking.Logging.logger.setLevel(0)

@@ -14,7 +14,7 @@ from networking.tests.example_functions import DummyPerson, DummyServerCommunica
 
 dummy_address = ("127.0.0.1", 5000)
 
-logger.setLevel(0)
+#logger.setLevel(0)
 
 
 class CommunicationTestCase(unittest.TestCase):

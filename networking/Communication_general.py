@@ -108,7 +108,7 @@ class Communicator(threading.Thread):
         self._auto_execute_functions = from_accept
         self._closed = False
         self.wait_for_response_timeout = float("inf")
-        self._cryptographer = Cryptographer()
+        self.cryptographer = Cryptographer()
 
     def run(self) -> None:
         """Connects to a tcp-socket. When it is connected, it listens to packets, that are sent from the other
@@ -190,17 +190,18 @@ class Communicator(threading.Thread):
 
     def _wait_for_new_input(self):
         """Loop that is constantly receiving or waiting for new packets from the tcp-connection."""
-        byte_stream = ByteStream(b'')
+        plain_byte_stream = ByteStream(b'')
+        encrypted_byte_stream = ByteStream(b'')
         while self._is_on:
             if self._is_on and not self._is_connected:
                 if self._keep_connection:
                     self._connect()
                 else:
                     self.stop(is_same_thread=True)
-            packet = self._recv_packet(byte_stream)
+            packet = self._recv_packet(plain_byte_stream, encrypted_byte_stream)
             if packet is not None:
                 if isinstance(packet, FileMetaPacket):
-                    self._recv_file(packet, byte_stream)
+                    self._recv_file(packet, plain_byte_stream, encrypted_byte_stream)
                     self._packets.append(packet)
                 elif self._auto_execute_functions and isinstance(packet, FunctionPacket):
                     func_thread = FunctionExecutionThread(self._id, packet, self._handle_packet)
@@ -208,16 +209,31 @@ class Communicator(threading.Thread):
                 else:
                     self._packets.append(packet)
 
-    def _recv_data(self, size: int) -> Optional[bytes]:
-        """Pulls the given amount of bytes from the tcp-connection buffer and returns it."""
+    def _recv_data(self, plain_byte_stream: ByteStream, encrypted_byte_stream: ByteStream) -> \
+            Optional[bytes]:
+        """Returns every chunk, that can be decrypted"""
+        data = plain_byte_stream.next_all_bytes()
+        if len(data) > 0:
+            return data
+        encrypted_data = encrypted_byte_stream.next_all_bytes()
         try:
-            # TODO: Decrypt bytes + wait till received bytes of len size
-            chunk_data = self._socket_connection.recv(size)
-            if chunk_data == b"":
-                logger.info("Connection reset, (%s)", str(self._address))
-                self._is_connected = False
-            else:
-                return chunk_data
+            while True:
+                chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
+                if chunk_data == b"":
+                    logger.info("Connection reset, (%s)", str(self._address))
+                    self._is_connected = False
+                    return None
+                else:
+                    if not self.cryptographer.is_encrypted_communication:
+                        return chunk_data
+                    if b"%%" in chunk_data:
+                        corresponding_data = chunk_data.split(b"%%")[0]
+                        encrypted_data += corresponding_data
+                        encrypted_byte_stream += chunk_data[len(corresponding_data) + 2:]
+                        data += self.cryptographer.decrypt(encrypted_data)
+                        return data
+                    else:
+                        encrypted_data += chunk_data
 
         except ConnectionResetError:
             if self._is_on:
@@ -234,14 +250,12 @@ class Communicator(threading.Thread):
                 logger.warning("TCP connection closed while listening")
             self._is_connected = False
 
-    def _recv_packet(self, byte_stream: ByteStream) -> Optional[Packet]:
+    def _recv_packet(self, plain_byte_stream: ByteStream, encrypted_byte_stream: ByteStream,) -> Optional[Packet]:
         """Receives bytes till a packet can be build. This packet is returned"""
-        packet_builder = PacketBuilder(byte_stream)
+        packet_builder = PacketBuilder(plain_byte_stream)
         while True:
-            chunk_data = self._recv_data(self.CHUNK_SIZE)
+            chunk_data = self._recv_data(plain_byte_stream, encrypted_byte_stream)
             if chunk_data == b"" or chunk_data is None:
-                logger.info("Connection reset, (%s)", str(self._address))
-                self._is_connected = False
                 return None
             else:
                 possible_packet = packet_builder.add_chunk(chunk_data)
@@ -249,7 +263,8 @@ class Communicator(threading.Thread):
                 if possible_packet is not None:
                     return possible_packet
 
-    def _recv_file(self, file_meta_packet: FileMetaPacket, byte_stream: ByteStream) -> None:
+    def _recv_file(self, file_meta_packet: FileMetaPacket, plain_byte_stream: ByteStream,
+                   encrypted_byte_stream: ByteStream,) -> None:
         """Receives bytes, till the file is fully received. The file is saved at the destination, given in the
         file_meta_packet."""
         file_path = file_meta_packet.dst_path
@@ -260,7 +275,7 @@ class Communicator(threading.Thread):
         with open(file_path, "ab") as file:
             while remaining_bytes > 0:
                 num_next_bytes = min(self.CHUNK_SIZE, remaining_bytes)
-                data = self._recv_data(num_next_bytes)
+                data = self._recv_data(byte_stream, num_next_bytes)
                 file.write(data)
                 remaining_bytes -= len(data)
 
@@ -268,8 +283,9 @@ class Communicator(threading.Thread):
         if not self._is_connected:
             self._connect(timeout=2)
         try:
-            # TODO: Encrypt bytes
-            sent = self._socket_connection.sendall(byte_string)
+            encrypted_message = self.cryptographer.encrypt(byte_string)
+            send_message = encrypted_message + b"%%"
+            sent = self._socket_connection.sendall(send_message)
             # returns None on success
             return sent is None
         except OSError:
@@ -493,6 +509,7 @@ class Connector:
                     # raise TimeoutError(f"Stopped trying to connect to server after {int(waited)} seconds")
                 elif ENCRYPTED_COMMUNICATION is True:
                     exchange_keys_function(connector)
+
             if blocking:
                 try_connect()
             else:
@@ -526,12 +543,13 @@ class Connector:
 
 class MultiConnector(Connector, metaclass=MetaSingletonConnector):
     """Connector that allows creating multiple instances. Every instance is handled like a Singleton."""
+
     def __init__(self, id_: int) -> None:
         self._id = to_client_id(id_)
         self.communicator: Optional[Communicator] = None
         self._exchanged_keys = False
 
-    def connect(self: Connector, addr: SocketAddress, blocking=True, timeout=float("inf"), exchange_keys_function=None)\
+    def connect(self: Connector, addr: SocketAddress, blocking=True, timeout=float("inf"), exchange_keys_function=None) \
             -> bool:
         return super().connect(self, addr, blocking, timeout, exchange_keys_function)
 

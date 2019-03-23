@@ -29,6 +29,7 @@ class Cryptographer:
     def communication_key(self, key):
         if self.communication_key is None:
             self.is_encrypted_communication = True
+            self._fernet = Fernet(key)
             self._communication_key = key
 
     def encrypt(self, byte_string: bytes) -> bytes:
@@ -50,10 +51,10 @@ class Cryptographer:
         self._public_key = self._private_key.public_key()
         return self._private_key, self._public_key
 
-    def generate_communication_key(self):
+    @staticmethod
+    def generate_communication_key():
         """Generates a symmetric key"""
-        self._communication_key = Fernet.generate_key()
-        return self._communication_key
+        return Fernet.generate_key()
 
     def get_serialized_public_key(self) -> bytes:
         return self._public_key.public_bytes(
