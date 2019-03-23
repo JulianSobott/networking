@@ -57,10 +57,11 @@ import time
 from typing import Tuple, List, Dict, Optional, Callable, Any, Type, Union
 
 import utils
+from networking.Cryptography import Cryptographer
 from networking.Logging import logger
 from networking.Packets import Packet, DataPacket, FunctionPacket, FileMetaPacket, Header, packets as packet_types
 from networking.ID_management import IDManager, remove_manager
-from networking.Data import ByteStream, File, Cryptographer
+from networking.Data import ByteStream, File
 
 SocketAddress = Tuple[str, int]
 
@@ -107,6 +108,7 @@ class Communicator(threading.Thread):
         self._auto_execute_functions = from_accept
         self._closed = False
         self.wait_for_response_timeout = float("inf")
+        self._cryptographer = Cryptographer()
 
     def run(self) -> None:
         """Connects to a tcp-socket. When it is connected, it listens to packets, that are sent from the other
@@ -209,6 +211,7 @@ class Communicator(threading.Thread):
     def _recv_data(self, size: int) -> Optional[bytes]:
         """Pulls the given amount of bytes from the tcp-connection buffer and returns it."""
         try:
+            # TODO: Decrypt bytes + wait till received bytes of len size
             chunk_data = self._socket_connection.recv(size)
             if chunk_data == b"":
                 logger.info("Connection reset, (%s)", str(self._address))
@@ -265,6 +268,7 @@ class Communicator(threading.Thread):
         if not self._is_connected:
             self._connect(timeout=2)
         try:
+            # TODO: Encrypt bytes
             sent = self._socket_connection.sendall(byte_string)
             # returns None on success
             return sent is None
@@ -302,10 +306,11 @@ class Communicator(threading.Thread):
         file_meta_packet = FileMetaPacket(file.src_path, file.size, file.dst_path)
         self.send_packet(file_meta_packet)
         with open(file.src_path, "rb") as f:
-            file_data = f.read(self.CHUNK_SIZE * 2)
+            file_data = f.read(self.CHUNK_SIZE)
             while len(file_data) > 0:
-                self._socket_connection.send(file_data)
-                file_data = f.read(self.CHUNK_SIZE * 2)
+                # TODO: encrypt file data
+                self._socket_connection.sendall(file_data)
+                file_data = f.read(self.CHUNK_SIZE)
 
     def stop(self, is_same_thread=False) -> None:
         """Stops all listening and the thread is joined. Send processes are not stopped and it the thread first
