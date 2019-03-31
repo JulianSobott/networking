@@ -18,7 +18,7 @@ setup(name='networking',
       keywords='network packet communication',
       project_urls={
         "Bug Tracker": "https://github.com/JulianSobott/networking/issues",
-        "Documentation": "https://github.com/JulianSobott/networking/wiki",
+        "Documentation": "http://networking.readthedocs.io/",
         "Source Code": "https://github.com/JulianSobott/networking",
       },
       classifiers=[
@@ -28,7 +28,6 @@ setup(name='networking',
         "Topic :: Software Development :: Libraries",
         "Topic :: System :: Monitoring",
         ],
-      zip_safe=False
       zip_safe=False,
       install_requires=['cryptography']
       )

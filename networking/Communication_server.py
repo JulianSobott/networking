@@ -113,11 +113,14 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
                 client_communicator_id = to_server_id(client_id)
                 client = self._client_communicator(client_communicator_id, self._address, connection,
                                                    self._remove_disconnected_client)
-                self.clients[client_communicator_id] = client
+                self._add_client(client_communicator_id, client)
             except OSError:
                 if self._is_on:
                     logger.error("TCP connection closed while listening")
                     # TODO: handle (if possible)
+
+    def _add_client(self, client_communicator_id: int, client: 'ClientCommunicator'):
+        self.clients[client_communicator_id] = client
 
     def _produce_next_client_id(self) -> int:
         try:
