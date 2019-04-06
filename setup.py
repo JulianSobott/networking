@@ -38,6 +38,5 @@ if __name__ == '__main__':
             "Topic :: Software Development :: Libraries",
             ],
           zip_safe=False,
-          #install_requires=['cryptography', 'thread-testing']
-          install_requires=['thread-testing']
+          install_requires=['cryptography', 'thread-testing']
           )
