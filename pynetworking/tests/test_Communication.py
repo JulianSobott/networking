@@ -14,6 +14,7 @@ from pynetworking.tests.example_functions import DummyPerson, DummyServerCommuni
     DummyMultiServerCommunicator
 
 dummy_address = ("127.0.0.1", 5000)
+server_address = ("0.0.0.0", 5000)
 
 #logger.setLevel(0)
 
@@ -69,7 +70,7 @@ class TestConnecting(CommunicationTestCase):
                               DummyMultiServerCommunicator)
 
     def test_single_client(self):
-        with ClientManager(dummy_address, DummyClientCommunicator) as listener:
+        with ClientManager(server_address, DummyClientCommunicator) as listener:
             DummyServerCommunicator.connect(dummy_address)
 
             wait_till_condition(lambda: len(listener.clients) == 1, timeout=1)
@@ -92,7 +93,7 @@ class TestConnecting(CommunicationTestCase):
 
     def test_multiple_clients(self):
         pynetworking.Communication_general.set_encrypted_communication(False)
-        with ClientManager(dummy_address, DummyClientCommunicator) as listener:
+        with ClientManager(server_address, DummyClientCommunicator) as listener:
             DummyMultiServerCommunicator(0).connect(dummy_address)
             DummyMultiServerCommunicator(1).connect(dummy_address)
 
@@ -126,7 +127,7 @@ class TestConnecting(CommunicationTestCase):
 
     def test_server_turn_on(self):
         DummyServerCommunicator.connect(dummy_address, blocking=False)
-        with ClientManager(dummy_address, DummyClientCommunicator) as listener:
+        with ClientManager(server_address, DummyClientCommunicator) as listener:
             wait_till_condition(lambda: DummyServerCommunicator._exchanged_keys is True, timeout=2)
             self.assertEqual(len(listener.clients), 1)
             self.assertEqual(True, DummyServerCommunicator._exchanged_keys)
@@ -137,7 +138,7 @@ class TestConnecting(CommunicationTestCase):
         self.assertEqual(get_num_non_dummy_threads(), 1)
 
     def test_listener_clients(self):
-        with ClientManager(dummy_address, DummyClientCommunicator) as listener:
+        with ClientManager(server_address, DummyClientCommunicator) as listener:
             self.assertEqual(len(listener.clients.values()), 0)
             DummyServerCommunicator.connect(dummy_address)
             wait_till_condition(lambda: len(listener.clients) == 1, timeout=2)
@@ -150,7 +151,7 @@ class TestConnecting(CommunicationTestCase):
 class TestCommunicating(CommunicationTestCase):
 
     def helper_test_func(self, func, args: tuple, expected_ret):
-        with ClientManager(dummy_address, DummyClientCommunicator):
+        with ClientManager(server_address, DummyClientCommunicator):
             DummyServerCommunicator.connect(dummy_address)
             try:
                 ret_value = func(*args)
@@ -216,7 +217,7 @@ class TestCommunicating(CommunicationTestCase):
         import os
         file_path = os.path.join(os.path.split(__file__)[0], "std_out.txt")
         destination_path = os.path.join(os.path.split(__file__)[0], "new_file.txt")
-        with ClientManager(dummy_address, DummyClientCommunicator):
+        with ClientManager(server_address, DummyClientCommunicator):
             DummyServerCommunicator.connect(dummy_address)
             file = DummyServerCommunicator.remote_functions().get_file(file_path, destination_path)
             self.assertEqual(file.src_path, file_path)
@@ -231,7 +232,7 @@ class TestCommunicating(CommunicationTestCase):
                 f.write("H"*100000)
 
         destination_path = os.path.join(os.path.split(__file__)[0], "new_file.txt")
-        with ClientManager(dummy_address, DummyClientCommunicator):
+        with ClientManager(server_address, DummyClientCommunicator):
             DummyServerCommunicator.connect(dummy_address)
             file = DummyServerCommunicator.remote_functions().get_file(file_path, destination_path)
             self.assertEqual(file.src_path, file_path)
