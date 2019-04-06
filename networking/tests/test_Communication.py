@@ -213,8 +213,8 @@ class TestCommunicating(CommunicationTestCase):
 
     def test_small_file(self):
         import os
-        file_path = "std_out.txt"
-        destination_path = "new_file.txt"
+        file_path = os.path.join(os.path.split(__file__)[0], "std_out.txt")
+        destination_path = os.path.join(os.path.split(__file__)[0], "new_file.txt")
         with ClientManager(dummy_address, DummyClientCommunicator):
             DummyServerCommunicator.connect(dummy_address)
             file = DummyServerCommunicator.remote_functions().get_file(file_path, destination_path)
@@ -224,8 +224,12 @@ class TestCommunicating(CommunicationTestCase):
 
     def test_huge_file(self):
         import os
-        file_path = "dummy.txt"
-        destination_path = "new_file.txt"
+        file_path = os.path.join(os.path.split(__file__)[0], "dummy.txt")
+        with open(file_path, "w+") as f:
+            for i in range(100):
+                f.write("H"*100000)
+
+        destination_path = os.path.join(os.path.split(__file__)[0], "new_file.txt")
         with ClientManager(dummy_address, DummyClientCommunicator):
             DummyServerCommunicator.connect(dummy_address)
             file = DummyServerCommunicator.remote_functions().get_file(file_path, destination_path)

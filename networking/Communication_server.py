@@ -49,7 +49,7 @@ __all__ = ["ClientManager", "ClientFunctions"]
 class MetaClientManager(type):
     """Allows that multiple ClientManagers can be created. Stores every instance of a ClientManager"""
     _instances: Dict[SocketAddress, 'ClientManager'] = {}
-    _last_instance: 'ClientManager'
+    _last_instance: 'ClientManager' = None
 
     def __call__(cls, *args, **kwargs) -> 'ClientManager':
         if len(args) == 0:
