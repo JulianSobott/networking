@@ -15,13 +15,12 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../'))
-sys.path.insert(1, os.path.abspath('../networking/'))
 sys.path.append(os.path.abspath('../networking_examples/login_example/'))
 
 
 # -- Project information -----------------------------------------------------
 
-project = 'networking'
+project = 'pynet'
 copyright = '2019, Julian Sobott'
 author = 'Julian Sobott'
 
@@ -134,7 +133,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'networking.tex', 'networking Documentation',
+    (master_doc, 'pynet.tex', 'pynet Documentation',
      'Julian Sobott', 'manual'),
 ]
 
@@ -144,7 +143,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'networking', 'networking Documentation',
+    (master_doc, 'pynet', 'pynet Documentation',
      [author], 1)
 ]
 
@@ -155,8 +154,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'networking', 'networking Documentation',
-     author, 'networking', 'One line description of project.',
+    (master_doc, 'pynet', 'pynet Documentation',
+     author, 'pynet', 'One line description of project.',
      'Miscellaneous'),
 ]
 

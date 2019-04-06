@@ -9,9 +9,9 @@
 """
 from unittest import TestCase
 
-from networking.Data import general_pack, general_unpack, ByteStream
+from pynet.Data import general_pack, general_unpack, ByteStream
 
-from networking.tests.example_functions import DummyPerson
+from pynet.tests.example_functions import DummyPerson
 
 
 def single_value(test_self, value):

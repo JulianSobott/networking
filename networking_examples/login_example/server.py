@@ -1,5 +1,5 @@
 import interface
-import networking as net
+import pynet as net
 import time
 
 

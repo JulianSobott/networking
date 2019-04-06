@@ -1,15 +1,16 @@
 import unittest
 import sys
+import os
 
 from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
 
-from networking.Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
-from networking.Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager
-from networking.Communication_general import to_server_id
-import networking.Communication_general
-from networking.Logging import logger
+from pynet.Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
+from pynet.Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager
+from pynet.Communication_general import to_server_id
+import pynet.Communication_general
+from pynet.Logging import logger
 
-from networking.tests.example_functions import DummyPerson, DummyServerCommunicator, DummyClientCommunicator, \
+from pynet.tests.example_functions import DummyPerson, DummyServerCommunicator, DummyClientCommunicator, \
     DummyMultiServerCommunicator
 
 dummy_address = ("127.0.0.1", 5000)
@@ -34,7 +35,7 @@ class StdOutEqualizer:
         self.test_case: CommunicationTestCase = test_case
         self.expected = expected
         self.original = sys.stdout
-        self.file_path = "std_out.txt"
+        self.file_path = os.path.join(os.path.split(__file__)[0], "std_out.txt")
 
     def __enter__(self):
         self.original = sys.stdout
@@ -90,7 +91,7 @@ class TestConnecting(CommunicationTestCase):
         self.assertEqual(get_num_non_dummy_threads(), 1)
 
     def test_multiple_clients(self):
-        networking.Communication_general.set_encrypted_communication(False)
+        pynet.Communication_general.set_encrypted_communication(False)
         with ClientManager(dummy_address, DummyClientCommunicator) as listener:
             DummyMultiServerCommunicator(0).connect(dummy_address)
             DummyMultiServerCommunicator(1).connect(dummy_address)
@@ -116,7 +117,7 @@ class TestConnecting(CommunicationTestCase):
         wait_till_joined(listener, timeout=1)
 
         self.assertEqual(get_num_non_dummy_threads(), 1)
-        networking.Communication_general.set_encrypted_communication(True)
+        pynet.Communication_general.set_encrypted_communication(True)
 
     def test_offline_server(self):
         connected = DummyServerCommunicator.connect(dummy_address, timeout=0)
@@ -213,8 +214,8 @@ class TestCommunicating(CommunicationTestCase):
 
     def test_small_file(self):
         import os
-        file_path = "std_out.txt"
-        destination_path = "new_file.txt"
+        file_path = os.path.join(os.path.split(__file__)[0], "std_out.txt")
+        destination_path = os.path.join(os.path.split(__file__)[0], "new_file.txt")
         with ClientManager(dummy_address, DummyClientCommunicator):
             DummyServerCommunicator.connect(dummy_address)
             file = DummyServerCommunicator.remote_functions().get_file(file_path, destination_path)
@@ -224,8 +225,12 @@ class TestCommunicating(CommunicationTestCase):
 
     def test_huge_file(self):
         import os
-        file_path = "dummy.txt"
-        destination_path = "new_file.txt"
+        file_path = os.path.join(os.path.split(__file__)[0], "dummy.txt")
+        with open(file_path, "w+") as f:
+            for i in range(100):
+                f.write("H"*100000)
+
+        destination_path = os.path.join(os.path.split(__file__)[0], "new_file.txt")
         with ClientManager(dummy_address, DummyClientCommunicator):
             DummyServerCommunicator.connect(dummy_address)
             file = DummyServerCommunicator.remote_functions().get_file(file_path, destination_path)

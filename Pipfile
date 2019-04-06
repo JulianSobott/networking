@@ -3,14 +3,10 @@ name = "pypi"
 url = "https://pypi.org/simple"
 verify_ssl = true
 
-[dev-packages]
-nose2 = "*"
 
 [packages]
 cryptography = "*"
-pyopenssl = "*"
-thread-testing = {index = "https://test.pypi.org/simple/",version = "*"}
-yappi = "*"
+thread-testing = "*"
 
 [requires]
 python_version = "3.7"

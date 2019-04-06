@@ -10,11 +10,11 @@
 """
 import unittest
 
-from networking.Packets import Header, Packet, DataPacket, FunctionPacket, FileMetaPacket
-from networking.Data import ByteStream
-from networking.Logging import logger
+from pynet.Packets import Header, Packet, DataPacket, FunctionPacket, FileMetaPacket
+from pynet.Data import ByteStream
+from pynet.Logging import logger
 
-from networking.tests.example_functions import DummyPerson
+from pynet.tests.example_functions import DummyPerson
 
 
 class TestPackets(unittest.TestCase):

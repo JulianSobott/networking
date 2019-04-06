@@ -7,7 +7,7 @@
 
 @internal_use:
 """
-import networking as net
+import pynet as net
 
 
 class ServerFunctions(net.ServerFunctions):

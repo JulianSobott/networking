@@ -1,4 +1,4 @@
-import networking as net
+import pynet as net
 
 
 class ServerCommunicator:

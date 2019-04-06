@@ -1,5 +1,5 @@
 """
-:module: networking.Packets
+:module: pynet.Packets
 :synopsis: Provides classes that are used to send data over the network. The data is packed into packets.
 :author: Julian Sobott
 
@@ -73,9 +73,9 @@ private constants
 """
 from typing import Union, Dict, Any, Callable, Optional
 
-from networking.utils import Ddict
-from networking.Logging import logger
-from networking.Data import pack_int_type, unpack_int_type, NUM_TYPE_BYTES, \
+from pynet.utils import Ddict
+from pynet.Logging import logger
+from pynet.Data import pack_int_type, unpack_int_type, NUM_TYPE_BYTES, \
     general_unpack, general_pack, ByteStream, pack_int
 
 
@@ -95,7 +95,7 @@ class Header:
 
     @classmethod
     def from_packet(cls, packet: 'Packet') -> 'Header':
-        from networking.ID_management import IDContainer
+        from pynet.ID_management import IDContainer
         packet_type = packets[packet.__class__]
         id_container = IDContainer.default_init()
         specific_data_size = 0
@@ -103,7 +103,7 @@ class Header:
 
     @classmethod
     def from_bytes(cls, byte_stream: ByteStream) -> 'Header':
-        from networking.ID_management import IDContainer
+        from pynet.ID_management import IDContainer
         id_container = IDContainer.from_bytes(byte_stream)
         packet_type = unpack_int_type(byte_stream.next_bytes(NUM_TYPE_BYTES))
         specific_data_size = byte_stream.next_int()

@@ -1,5 +1,5 @@
 """
-:module: networking.Data
+:module: pynet.Data
 :synopsis: Lowest level module, that manages important data for packets, mostly in bytes.
 :author: Julian Sobott
 
@@ -39,8 +39,8 @@ import os
 import pickle
 from typing import Any, Union
 
-from networking.utils import Ddict, load_dict_from_json, dump_dict_to_json
-from networking.Logging import logger
+from pynet.utils import Ddict, load_dict_from_json, dump_dict_to_json
+from pynet.Logging import logger
 
 NUM_TYPE_BYTES = 3
 ENCODING = "utf-8"
