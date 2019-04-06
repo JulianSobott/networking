@@ -1,5 +1,5 @@
 """
-:module: pynet.ID_management
+:module: pynetworking.ID_management
 :author: Julian Sobott
 :created: 13.11.2018
 :synopsis: Handles ids for proper network communication
@@ -47,9 +47,9 @@ private classes
 """
 from typing import List, Optional, Dict, Tuple
 
-from pynet.Data import NUM_INT_BYTES, NUM_TYPE_BYTES, pack_int
-from pynet.Logging import logger
-from pynet.Packets import FunctionPacket, DataPacket, FileMetaPacket, Packet
+from pynetworking.Data import NUM_INT_BYTES, NUM_TYPE_BYTES, pack_int
+from pynetworking.Logging import logger
+from pynetworking.Packets import FunctionPacket, DataPacket, FileMetaPacket, Packet
 
 __all__ = ["IDManager", "remove_manager", "IDContainer"]
 

@@ -1,5 +1,5 @@
 """
-:module: pynet.Communication_server
+:module: pynetworking.Communication_server
 :synopsis: Classes that are needed at the server side.
 :author: Julian Sobott
 
@@ -37,11 +37,11 @@ import socket
 import time
 from typing import Dict, Type, Union, Optional
 
-from pynet.Logging import logger
-from pynet.Communication_general import Communicator, Connector, SocketAddress, Functions, to_server_id
-import pynet.Communication_general
-from pynet.ID_management import IDManager
-from pynet.Packets import DataPacket
+from pynetworking.Logging import logger
+from pynetworking.Communication_general import Communicator, Connector, SocketAddress, Functions, to_server_id
+import pynetworking.Communication_general
+from pynetworking.ID_management import IDManager
+from pynetworking.Packets import DataPacket
 
 __all__ = ["ClientManager", "ClientFunctions"]
 
@@ -189,11 +189,11 @@ class ClientCommunicator(Connector):
     This class needs to be overwritten, but is only used internally. The overwritten class needs to set the
     attributes :code:`local_functions` and :code:`remote_functions`.
 
-    :ivar communicator: instance of :class:`pynet.Communication_general.Communicator`
+    :ivar communicator: instance of :class:`pynetworking.Communication_general.Communicator`
     :ivar remote_functions: All functions, that are available at the client side.
-        instance of: :class:`pynet.Communication_server.ClientFunctions`
+        instance of: :class:`pynetworking.Communication_server.ClientFunctions`
     :ivar local_functions: All functions, that are available at the server side.
-        instance of: :class:`pynet.Communication_client.ServerFunctions`"""
+        instance of: :class:`pynetworking.Communication_client.ServerFunctions`"""
 
     def __init__(self, id_: int, address: SocketAddress, connection: socket.socket, on_close):
         super().__init__()
@@ -202,7 +202,7 @@ class ClientCommunicator(Connector):
                                          local_functions=self.local_functions)
         self.communicator.start()
         self.remote_functions.__setattr__(self.remote_functions, "_connector", self)
-        if pynet.Communication_general.ENCRYPTED_COMMUNICATION:
+        if pynetworking.Communication_general.ENCRYPTED_COMMUNICATION:
             exchange_keys(self)
 
     def close_connection(self: Connector, blocking=True, timeout=float("inf")) -> None:

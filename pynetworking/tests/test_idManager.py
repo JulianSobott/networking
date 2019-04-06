@@ -11,10 +11,10 @@
 """
 from unittest import TestCase
 
-from pynet.ID_management import *
-from pynet.Packets import FunctionPacket, DataPacket, Packet, Header
-from pynet.Data import ByteStream
-from pynet.Logging import logger
+from pynetworking.ID_management import *
+from pynetworking.Packets import FunctionPacket, DataPacket, Packet, Header
+from pynetworking.Data import ByteStream
+from pynetworking.Logging import logger
 
 
 class TestIDManager(TestCase):

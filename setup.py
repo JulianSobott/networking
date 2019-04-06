@@ -6,16 +6,16 @@ with open("README.rst", "r") as fh:
 
 
 def my_test_suite():
-    from pynet.Logging import logger
+    from pynetworking.Logging import logger
     logger.setLevel(40)
     test_loader = unittest.TestLoader()
-    test_suite = test_loader.discover('pynet.tests', pattern='test_*.py')
+    test_suite = test_loader.discover('pynetworking.tests', pattern='test_*.py')
     return test_suite
 
 
 if __name__ == '__main__':
-    setup(name='pynet',
-          version='0.1a3',
+    setup(name='pynetworking',
+          version='0.1',
           description='High level network communication',
           long_description=long_description,
           url='https://github.com/JulianSobott/networking',

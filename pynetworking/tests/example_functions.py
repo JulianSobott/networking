@@ -7,9 +7,9 @@
 
 @internal_use:
 """
-import pynet as net
+import pynetworking as net
 
-from pynet.Logging import logger
+from pynetworking.Logging import logger
 
 
 class _DummyServerFunctions(net.ServerFunctions):

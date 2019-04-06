@@ -5,7 +5,7 @@ from unittest import TestCase
 class TestMain(TestCase):
 
     def test_imports(self):
-        import pynet
+        import pynetworking
 
     def test_final_procedure(self):
         """"

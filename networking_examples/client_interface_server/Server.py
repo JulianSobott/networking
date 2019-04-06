@@ -7,7 +7,7 @@
 
 @internal_use:
 """
-import pynet as net
+import pynetworking as net
 
 
 def greet_client(name: str):

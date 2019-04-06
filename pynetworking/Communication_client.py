@@ -1,5 +1,5 @@
 """
-:module: pynet.Communication_server
+:module: pynetworking.Communication_server
 :synopsis: Classes that are needed at the client side.
 :author: Julian Sobott
 
@@ -27,10 +27,10 @@ private functions
 """
 from typing import Union, Type, Optional
 
-from pynet.Logging import logger
-from pynet.Communication_general import Connector, SingleConnector, MultiConnector, Functions, SocketAddress
-from pynet.Packets import DataPacket
-from pynet.ID_management import IDManager
+from pynetworking.Logging import logger
+from pynetworking.Communication_general import Connector, SingleConnector, MultiConnector, Functions, SocketAddress
+from pynetworking.Packets import DataPacket
+from pynetworking.ID_management import IDManager
 
 
 class ServerCommunicator(SingleConnector):

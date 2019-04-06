@@ -1,5 +1,5 @@
 """
-:module: pynet.Cryptography
+:module: pynetworking.Cryptography
 :synopsis: Access to Cryptography
 :author: Julian Sobott
 

@@ -4,13 +4,13 @@ import os
 
 from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
 
-from pynet.Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
-from pynet.Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager
-from pynet.Communication_general import to_server_id
-import pynet.Communication_general
-from pynet.Logging import logger
+from pynetworking.Communication_client import ServerCommunicator, MultiServerCommunicator, ServerFunctions
+from pynetworking.Communication_server import ClientManager, ClientFunctions, ClientCommunicator, MetaClientManager
+from pynetworking.Communication_general import to_server_id
+import pynetworking.Communication_general
+from pynetworking.Logging import logger
 
-from pynet.tests.example_functions import DummyPerson, DummyServerCommunicator, DummyClientCommunicator, \
+from pynetworking.tests.example_functions import DummyPerson, DummyServerCommunicator, DummyClientCommunicator, \
     DummyMultiServerCommunicator
 
 dummy_address = ("127.0.0.1", 5000)
@@ -91,7 +91,7 @@ class TestConnecting(CommunicationTestCase):
         self.assertEqual(get_num_non_dummy_threads(), 1)
 
     def test_multiple_clients(self):
-        pynet.Communication_general.set_encrypted_communication(False)
+        pynetworking.Communication_general.set_encrypted_communication(False)
         with ClientManager(dummy_address, DummyClientCommunicator) as listener:
             DummyMultiServerCommunicator(0).connect(dummy_address)
             DummyMultiServerCommunicator(1).connect(dummy_address)
@@ -117,7 +117,7 @@ class TestConnecting(CommunicationTestCase):
         wait_till_joined(listener, timeout=1)
 
         self.assertEqual(get_num_non_dummy_threads(), 1)
-        pynet.Communication_general.set_encrypted_communication(True)
+        pynetworking.Communication_general.set_encrypted_communication(True)
 
     def test_offline_server(self):
         connected = DummyServerCommunicator.connect(dummy_address, timeout=0)

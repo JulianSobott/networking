@@ -1,6 +1,6 @@
 """
-:module: pynet.Communication_general
-:synopsis: Important functions, classes for communication. Main module of pynet.
+:module: pynetworking.Communication_general
+:synopsis: Important functions, classes for communication. Main module of pynetworking.
 :author: Julian Sobott
 
 public classes
@@ -68,11 +68,11 @@ import socket
 import time
 from typing import Tuple, List, Dict, Optional, Callable, Any, Type, Union
 
-from pynet.Cryptography import Cryptographer
-from pynet.Logging import logger
-from pynet.Packets import Packet, DataPacket, FunctionPacket, FileMetaPacket, Header
-from pynet.ID_management import IDManager, remove_manager
-from pynet.Data import ByteStream, File
+from pynetworking.Cryptography import Cryptographer
+from pynetworking.Logging import logger
+from pynetworking.Packets import Packet, DataPacket, FunctionPacket, FileMetaPacket, Header
+from pynetworking.ID_management import IDManager, remove_manager
+from pynetworking.Data import ByteStream, File
 
 SocketAddress = Tuple[str, int]
 
@@ -320,7 +320,7 @@ class Communicator(threading.Thread):
 
     def _received_function_packet(self, packet: FunctionPacket) -> None:
         """Executes the function, with all args. Packs the return value or the exception in a data-packet and sends
-        it back. If a pynet.File is returned, a FileMetaPacket + the file itself is sent."""
+        it back. If a pynetworking.File is returned, a FileMetaPacket + the file itself is sent."""
         func = packet.function_name
         args = packet.args
         kwargs = packet.kwargs

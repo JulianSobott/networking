@@ -21,7 +21,7 @@ The easiest way to install is to use `pip <https://pip.pypa.io/en/stable/quickst
 
 .. code-block:: console
 
-   pip install pynet
+   pip install pynetworking
 
 It is also possible to clone the repository from `Github <https://github.com/JulianSobott/networking>`_ with:
 

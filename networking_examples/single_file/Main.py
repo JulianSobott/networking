@@ -1,13 +1,13 @@
 """
 @author: Julian Sobott
-@brief: A example that shows very brief all important features of the pynet module
+@brief: A example that shows very brief all important features of the pynetworking module
 @description:
-This is example is meant to demonstrate the use of the most important features of the pynet module.
+This is example is meant to demonstrate the use of the most important features of the pynetworking module.
 This example has to be adjusted if you want to implement a real client server application. Here client and
 server are executed in the same process which is ok for testing but not realistic in reality.
 
 """
-import pynet as net
+import pynetworking as net
 
 # define the address at which the server listen and the clients connect to
 server_address = "127.0.0.1", 5000
