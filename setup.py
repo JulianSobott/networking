@@ -1,7 +1,15 @@
 from setuptools import setup, find_packages
+import unittest
 
 with open("README.rst", "r") as fh:
     long_description = fh.read()
+
+
+def my_test_suite():
+    test_loader = unittest.TestLoader()
+    test_suite = test_loader.discover('networking.tests', pattern='test_*.py')
+    return test_suite
+
 
 setup(name='networking',
       version='0.1a4',
@@ -12,8 +20,7 @@ setup(name='networking',
       author_email='julian.sobott@gmx.de',
       license='Apache',
       packages=find_packages(),
-      test_suite='nose.collector',
-      tests_require=['nose2'],
+      test_suite='setup.my_test_suite',
       include_package_data=True,
       keywords='network packet communication',
       project_urls={
@@ -26,7 +33,6 @@ setup(name='networking',
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
         "Topic :: Software Development :: Libraries",
-        "Topic :: System :: Monitoring",
         ],
       zip_safe=False,
       install_requires=['cryptography']
