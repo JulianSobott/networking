@@ -5,4 +5,4 @@ python:
 install:
   - pipenv install
 script:
-  - python travis_tests.py
+  - python setup.py test

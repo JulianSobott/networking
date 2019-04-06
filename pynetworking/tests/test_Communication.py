@@ -13,7 +13,7 @@ from pynetworking.Logging import logger
 from pynetworking.tests.example_functions import DummyPerson, DummyServerCommunicator, DummyClientCommunicator, \
     DummyMultiServerCommunicator
 
-dummy_address = ("127.0.0.1", 5000)
+dummy_address = ("localhost", 5000)
 server_address = ("0.0.0.0", 5000)
 
 #logger.setLevel(0)

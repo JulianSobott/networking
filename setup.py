@@ -7,7 +7,7 @@ with open("README.rst", "r") as fh:
 
 def my_test_suite():
     from pynetworking.Logging import logger
-    logger.setLevel(40)
+    logger.setLevel(0)
     test_loader = unittest.TestLoader()
     test_suite = test_loader.discover('pynetworking.tests', pattern='test_*.py')
     return test_suite
