@@ -9,7 +9,7 @@
 """
 from unittest import TestCase
 
-from networking.Data import ByteStream, pack_int
+from pynet.Data import ByteStream, pack_int
 
 
 class TestByteStream(TestCase):
