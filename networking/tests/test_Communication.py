@@ -1,5 +1,6 @@
 import unittest
 import sys
+import os
 
 from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
 
@@ -34,7 +35,7 @@ class StdOutEqualizer:
         self.test_case: CommunicationTestCase = test_case
         self.expected = expected
         self.original = sys.stdout
-        self.file_path = "std_out.txt"
+        self.file_path = os.path.join(os.path.split(__file__)[0], "std_out.txt")
 
     def __enter__(self):
         self.original = sys.stdout
