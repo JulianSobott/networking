@@ -29,6 +29,27 @@ Features
 - Get the return values
 - Don`t care about sockets
 
+Example
+---------
+
+When you have :doc:`setup everything <external/Checklist>` this is an example how easy it will
+be to communicate between the server and client:
+
+At the *server:*
+
+.. code-block:: python
+
+   def add(number1, number2):
+      return number1 + number2
+
+To call it at the *client:*
+
+.. code-block:: python
+
+   result = server.add(5, 10)
+   print(result) # Output: 15
+
+
 .. _Installation:
 
 Installation
