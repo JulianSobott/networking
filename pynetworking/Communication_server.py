@@ -245,3 +245,5 @@ def exchange_keys(client_communicator: ClientCommunicator):
     communication_packet = DataPacket(communication_key=encrypted_communication_key)
     client_communicator.communicator.send_packet(communication_packet)
     cryptographer.communication_key = serialized_communication_key
+
+    client_communicator._exchanged_keys = True
