@@ -5,7 +5,7 @@ This page contains a checklist with all necessary parts that you need, when you 
 assumes you know how to use the library and just need a short recapitulation. If not check out the :any:`Getting_started` \
 page.
 
-1. Install networking ( :ref:`Installation` )
+1. :ref:`Install <Installation>` pynetworking
 2. Overwrite classes:
     2.1 ServerFunctions (:doc:`Functions`)
 
