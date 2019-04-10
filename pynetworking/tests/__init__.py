@@ -1,12 +1,2 @@
-"""
-@author: Julian Sobott
-@created: XX.XX.2019
-@brief:
-@description:
-
-@external_use:
-
-@internal_use:
-
-@TODO:
-"""
+from pynetworking.Logging import logger
+logger.setLevel(30)

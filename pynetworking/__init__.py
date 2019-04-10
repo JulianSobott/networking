@@ -12,4 +12,4 @@ from pynetworking.Data import File
 import pynetworking.utils
 import pynetworking.Logging
 
-pynetworking.Logging.logger.setLevel(20)
+pynetworking.Logging.logger.setLevel(40)
