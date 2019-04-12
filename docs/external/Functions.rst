@@ -15,7 +15,7 @@ Usage examples:
 
 .. literalinclude:: ../../networking_examples/client_interface_server/Interface.py
     :language: python
-    :start-after: import networking as net
+    :start-after: import pynetworking as net
     :end-before: class ServerCommunicator(net.ServerCommunicator):
 
 .. _functions-version-2:

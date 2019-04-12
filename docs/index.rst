@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to networking's documentation!
+Welcome to pynetworking's documentation!
 ======================================
 
 .. toctree::
@@ -15,6 +15,7 @@ Welcome to networking's documentation!
    external/Project_structures
    external/Checklist
    external/Functions
+   external/Security
    internal/index
 
 
@@ -27,6 +28,27 @@ Features
 - Directly call functions at the remote side
 - Get the return values
 - Don`t care about sockets
+
+Example
+---------
+
+When you have :doc:`setup everything <external/Checklist>` this is an example how easy it will
+be to communicate between the server and client:
+
+At the *server:*
+
+.. code-block:: python
+
+   def add(number1, number2):
+      return number1 + number2
+
+To call it at the *client:*
+
+.. code-block:: python
+
+   result = server.add(5, 10)
+   print(result) # Output: 15
+
 
 .. _Installation:
 

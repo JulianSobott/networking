@@ -4,7 +4,7 @@ After you installed the package you can start setting up your project.
 There are some parts you always need to add to your project. This tutorial will guide you through all necessary parts, \
 will explain them and shows alternatives.
 At the end of this tutorial you will have a login application. The focus is to introduce \
-the networking library and not how to write a secure login application. At the end of this site you will find the \
+the pynetworking library and not how to write a secure login application. At the end of this site you will find the \
 complete code.
 
 STEP 1: Creating the files
@@ -22,7 +22,7 @@ STEP 2: Defining the core functions
 -----------------------------------
 
 In this step we will define all functions that we need for a login application. We don't really care about how we could \
-integrate the networking library. The login process should proceed like this:
+integrate the pynetworking library. The login process should proceed like this:
 
 1. The client requests a login to the server
 2. The server gets all necessary data for login from the client
@@ -76,8 +76,8 @@ We add a few functions to the client and the server that we need later on:
             return True
         return False
 
-Before we connect everything with the networking library, we will show you how the relevant functions :code:`login()` and \
-:code:`request_login` would be implemented when everything were \
+Before we connect everything with the pynetworking library, we will show you how the relevant functions :code:`login()`
+and :code:`request_login` would be implemented when everything were \
 just client side and no network between. We leave out all the imports for simplicity.
 
 .. code-block:: python
@@ -94,19 +94,19 @@ just client side and no network between. We leave out all the imports for simpli
         password = get_password()
         return is_valid_data(username, password)
 
-STEP 3: Setup the 'networking' stuff
-------------------------------------
+STEP 3: Setup the 'pynetworking' stuff
+------------------------------------------
 
 But because there is always a network between a server and a client, we need another way of calling a server-side function.
-This is where the networking library comes in. We now need to setup a few things in the interface. We start by importing \
-the networking library and overwriting the :doc:`Functions`. These classes define which functions can be called \
+This is where the pynetworking library comes in. We now need to setup a few things in the interface. We start by importing \
+the pynetworking library and overwriting the :doc:`Functions`. These classes define which functions can be called \
 at the server/client.
 
 *interface.py*
 
 .. code-block:: python
 
-    import networking as net
+    import pynetworking as net
 
     class ServerFunctions(net.ServerFunctions):
         """All server functions, that can be called by the client"""
@@ -155,10 +155,10 @@ Now we call the :code:`request_login()` function inside :code:`login()`
         else:
             print("Login failed")
 
-As you can see the only thing that changed in compare to the client only code, is that we prepended some classes to the \
-:code:`request_login()` function. This code is working but the new line is very long and can look confusing. To solve this \
-you can add an alias directly under the imports. Because remote_functions are not defined when it is imported we need to \
-add extra definitions to the interface to prevent importing errors.
+As you can see the only thing that changed in compare to the client only code, is that we prepended some classes to
+the :code:`request_login()` function. This code is working but the new line is very long and can look confusing. To
+solve this you can add an alias directly under the imports. Because :code:`remote_functions` are not defined when it
+is imported we need to add extra definitions to the interface to prevent importing errors.
 
 *client.py*
 
@@ -245,7 +245,7 @@ After 20 seconds we close and stop everything. Normally you would run the server
 
 CONCLUSION
 ----------
-Congratulations you finished your first program that communicates over the network with help of the networking library.
+Congratulations you finished your first program that communicates over the network with help of the pynetworking library.
 Now you can start your server, then start the client. At the client you are prompted in the console to enter your username \
 and password. Enter any random value and see if you were successfully logged in.
 Some parts of the code could look pretty complicated. The good thing is, you don't have to understand what is going on, you \
@@ -258,7 +258,8 @@ WHAT IS NEXT?
 You can experiment with this example code by adding own functions. Try for example creating a function with parameters and see if it still works.
 You can also try what happens when an error is risen. The cool thing is, that you can code like you are really calling these functions, \
 but keep in mind everything works over a network and is transmitted over a tcp-connection. When you are finished with your experiments \
-you can start your own project.
+you can start your own project. When starting a new project this :doc:`checklist for new projects <Checklist>` will
+help you to add everything necessary.
 
 FINAL CODE
 ----------
