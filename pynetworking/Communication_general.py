@@ -66,6 +66,8 @@ Better raise of exception : add file and line-number, when packet return
 import threading
 import socket
 import time
+import traceback
+import sys
 from typing import Tuple, List, Dict, Optional, Callable, Any, Type, Union
 
 from pynetworking.Cryptography import Cryptographer
@@ -328,10 +330,8 @@ class Communicator(threading.Thread):
             ret_value = self._functions.__getattr__(func)(*args, **kwargs)
             if isinstance(ret_value, File):
                 return self._send_file(ret_value)
-        except TypeError as e:
-            ret_value = e
-        except AttributeError as e:
-            ret_value = e
+        except:
+            ret_value = ExceptionObject(*sys.exc_info())
 
         ret_kwargs = {"return": ret_value}
         data_packet = DataPacket(**ret_kwargs)
@@ -460,10 +460,9 @@ class MetaFunctionCommunicator(type):
                 raise e
             # unpack data packet
             return_values = data_packet.data["return"]
-            if isinstance(return_values, Exception):
-                logger.exception(return_values)
+            if isinstance(return_values, ExceptionObject):
                 # An exception was thrown at the other side!
-                raise return_values
+                raise return_values.exec_type(return_values.get_formatted())
             return return_values
 
         return container
@@ -650,3 +649,18 @@ class FunctionExecutionThread(threading.Thread):
     @property
     def id(self):
         return self._id
+
+
+class ExceptionObject:
+
+    def __init__(self, exc_type, exc_value, exc_traceback):
+        self._lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+        self.tb = traceback.extract_tb(exc_traceback)
+        self.exec_type = exc_type
+
+    def print_exception(self):
+        for line in self._lines:
+            print(line, end="", file=sys.stderr)
+
+    def get_formatted(self):
+        return "An Error occurred on the other side!\n"+"".join(self._lines)
