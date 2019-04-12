@@ -1,5 +1,7 @@
 import pynetworking as net
 
+server = None
+
 
 class ServerFunctions(net.ServerFunctions):
     """All server functions, that can be called by the client"""

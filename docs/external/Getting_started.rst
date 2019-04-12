@@ -123,23 +123,42 @@ work. It is only important, that you don't forget to overwrite them and don't ch
 
 *interface.py*
 
-.. literalinclude:: ../../networking_examples/login_example/interface.py
+.. literalinclude:: ../../pynetworking_examples/login_example/interface.py
     :language: python
     :lines: 14-21
+
+For easier use in the later code we also create an alias of the server functions. Add this to the
+interface.py file. This way we can later call functions directly from the 'server' object.
+
+*interface.py*
+
+.. code-block:: python
+
+    # Put this Before all classes
+    server = None # prevents import error, when using: `from interface import server`
+
+    class ServerFunctions(net.ServerFunctions):
+        ...
+
+    class ClientCommunicator(net.ClientCommunicator):
+        ...
+
+    # Put this after all classes
+    server = ServerCommunicator.remote_functions
 
 
 STEP 4: Connect everything
 --------------------------
 
 In this step we will connect everything.
-We start by importing the interface to both files. Notice that you can NOT use the :code:`from interface import ...` syntax, because \
-this will lead to a :code:`ImportError`.
+We start by importing the interface to both files. We can use the ``import interface`` or ``from interface import ...``
+syntax. in this example we go with the second one.
 
 *client.py*, *server.py*
 
 .. code-block:: python
 
-    import interface
+    from interface import server
 
 Now we call the :code:`request_login()` function inside :code:`login()`
 
@@ -149,52 +168,37 @@ Now we call the :code:`request_login()` function inside :code:`login()`
     :emphasize-lines: 2
 
     def login():
-        successfully_logged_in = interface.ServerCommunicator.remote_functions.request_login()
+        successfully_logged_in = server.request_login()
         if successfully_logged_in:
             print("Successfully logged in")
         else:
             print("Login failed")
 
-As you can see the only thing that changed in compare to the client only code, is that we prepended some classes to
-the :code:`request_login()` function. This code is working but the new line is very long and can look confusing. To
-solve this you can add an alias directly under the imports. Because :code:`remote_functions` are not defined when it
-is imported we need to add extra definitions to the interface to prevent importing errors.
+As you can see the only thing that changed in compare to the client only code, is that we prepended the server object to
+the :code:`request_login()` function.
 
-*client.py*
-
-.. code-block:: python
-
-    server = interface.interface.ServerCommunicator.remote_functions
-
-    def login()
-        successfully_logged_in = server.request_login()
-        ...
-
-Add the following code under the imports and above all previous defined classes.
-
-*interface.py*
-
-.. code-block:: python
-
-    class ServerCommunicator:
-        remote_functions = None
-
-
-    class ClientCommunicator:
-        remote_functions = None
 
 At the server things are a bit different. The problem is, that one server can be connected with multiple clients. To handle \
 this, you will need the :class:`ClientManager` again. Among other things, this class has a function \
 :code:`get()` which return the proper :class:`ClientCommunicator`. Note that you don't need to add any arguments to the \
 call and get methods. The call will return the same object as the one previously created. The proper :class:`ClientCommunicator` \
-is the one who called this function. \
-So the new code in server is:
+is the one who called this function. So the new code in server is:
 
 *server.py*
 
-.. literalinclude:: ../../networking_examples/login_example/server.py
+.. literalinclude:: ../../pynetworking_examples/login_example/server.py
     :language: python
     :lines: 6-9
+
+**Tip:** If you want better code completion in your IDE you can do the following:
+
+.. code-block:: python
+
+    from interface import ClientCommunicator
+
+    client: ClientCommunicator = net.ClientManager().get()
+    username = client.remote_functions.get_username()
+    ...
 
 STEP 5: Connecting the server and client
 ----------------------------------------
@@ -259,7 +263,8 @@ You can experiment with this example code by adding own functions. Try for examp
 You can also try what happens when an error is risen. The cool thing is, that you can code like you are really calling these functions, \
 but keep in mind everything works over a network and is transmitted over a tcp-connection. When you are finished with your experiments \
 you can start your own project. When starting a new project this :doc:`checklist for new projects <Checklist>` will
-help you to add everything necessary.
+help you to add everything necessary. You can also checkout other example at the
+`Github repository <https://github.com/JulianSobott/networking/tree/master/pynetworking_examples>`__.
 
 FINAL CODE
 ----------
@@ -267,18 +272,18 @@ Your final code should look something like this:
 
 *client.py*
 
-.. literalinclude:: ../../networking_examples/login_example/client.py
+.. literalinclude:: ../../pynetworking_examples/login_example/client.py
     :language: python
     :linenos:
 
 *interface.py*
 
-.. literalinclude:: ../../networking_examples/login_example/interface.py
+.. literalinclude:: ../../pynetworking_examples/login_example/interface.py
     :language: python
     :linenos:
 
 *server.py*
 
-.. literalinclude:: ../../networking_examples/login_example/server.py
+.. literalinclude:: ../../pynetworking_examples/login_example/server.py
     :language: python
     :linenos:
