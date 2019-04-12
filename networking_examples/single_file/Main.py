@@ -13,7 +13,7 @@ import pynetworking as net
 server_address = "127.0.0.1", 5000
 
 # Only log errors
-net.Logging.logger.setLevel(10)
+net.Logging.logger.setLevel(40)
 
 
 def main():
@@ -22,14 +22,17 @@ def main():
         # Connect a client to the server
         ServerCommunicator.connect(server_address, blocking=True, timeout=2)
 
+        # create an alias for all server functions (Not necessary, but code looks better)
+        server = ServerCommunicator.remote_functions
+
         # Call functions at the server and print the return values
-        ret = ServerCommunicator.remote_functions.greet_client()
+        ret = server.greet_client()
         print(ret)
 
-        ret = ServerCommunicator.remote_functions.say_hello("Doris")
+        ret = server.say_hello("Doris")
         print(ret)
 
-        ServerCommunicator.remote_functions.set_username("Jack")
+        server.set_username("Jack")
 
         # Close the connection to the server at client-side
         ServerCommunicator.close_connection()

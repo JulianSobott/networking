@@ -1,6 +1,5 @@
 import interface
-
-server = interface.ServerCommunicator.remote_functions
+from interface import server
 
 
 def login():

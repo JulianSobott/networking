@@ -1,14 +1,6 @@
 import pynetworking as net
 
 
-class ServerCommunicator:
-    remote_functions = None
-
-
-class ClientCommunicator:
-    remote_functions = None
-
-
 class ServerFunctions(net.ServerFunctions):
     """All server functions, that can be called by the client"""
     from server import request_login
@@ -27,3 +19,6 @@ class ServerCommunicator(net.ServerCommunicator):
 class ClientCommunicator(net.ClientCommunicator):
     remote_functions = ClientFunctions
     local_functions = ServerFunctions
+
+
+server = ServerCommunicator.remote_functions
