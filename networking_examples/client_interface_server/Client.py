@@ -1,11 +1,5 @@
 """
-@author: Julian Sobott
-@brief:
-@description:
-
-@external_use:
-
-@internal_use:
+:synopsis: All functions located at the client_side
 """
 import pynetworking as net
 import Interface
