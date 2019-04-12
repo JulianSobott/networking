@@ -62,5 +62,11 @@ class TestPacking(TestCase):
     def test_object(self):
         single_value(self, DummyPerson("John", 90))
 
+    def test_lambda(self):
+        byte_string = general_pack(lambda x, y: x + y)
+        byte_stream = ByteStream(byte_string)
+        new_value = general_unpack(byte_stream)[0]
+        self.assertEqual(10, new_value(5, 5))
+
 
 
