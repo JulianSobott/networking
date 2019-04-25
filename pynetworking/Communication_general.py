@@ -57,11 +57,6 @@ private classes
 
 .. autoclass:: FunctionExecutionThread
 
-
-Nice to haves
---------------
-
-Better raise of exception : add file and line-number, when packet return
 """
 import threading
 import socket
@@ -157,11 +152,11 @@ class Communicator(threading.Thread):
                                  f"Got instead: {actual_outer_id}")
                     # TODO: handle (if possible)
                 else:
+                    if isinstance(next_packet, Packet):
+                        self._handle_packet(next_packet)
                     if isinstance(next_packet, FunctionPacket):
                         """execute and keep waiting for data"""
-                        self._handle_packet(next_packet)
                     elif isinstance(next_packet, DataPacket):
-                        self._handle_packet(next_packet)
                         return next_packet
                     elif isinstance(next_packet, FileMetaPacket):
                         """File is already transmitted."""
