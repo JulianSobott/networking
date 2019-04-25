@@ -27,7 +27,7 @@ Features
 --------
 - Directly call functions at the remote side
 - Get the return values
-- Don`t care about sockets
+- Don't care about sockets
 
 Example
 ---------
@@ -67,7 +67,14 @@ It is also possible to clone the repository from `Github <https://github.com/Jul
 
    git clone https://github.com/JulianSobott/networking.git
 
+Getting started
+-----------------
 
+Checkout the :doc:`getting started <Getting_started>`_ guide. In this guide you will learn how to write a simple
+login application. This guide covers all basics, that are necessary.
+
+If you are already familiar with this library and just need a brief recap, there is a
+:doc:`checklist <Checklist`_
 
 Contribute
 ----------
