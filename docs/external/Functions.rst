@@ -13,7 +13,7 @@ Usage examples:
 
 *interface.py*
 
-.. literalinclude:: ../../networking_examples/client_interface_server/Interface.py
+.. literalinclude:: ../../pynetworking_examples/client_interface_server/Interface.py
     :language: python
     :start-after: import pynetworking as net
     :end-before: class ServerCommunicator(net.ServerCommunicator):

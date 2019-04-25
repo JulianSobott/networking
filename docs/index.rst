@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to pynetworking's documentation!
-======================================
+==============================================
 
 .. toctree::
    :maxdepth: 1
