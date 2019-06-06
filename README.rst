@@ -7,7 +7,8 @@ This tool abstracts network communication to a level, where you don't have to ca
 network communication. Server side functions can be called at the client as they were local. Functions may be called
 with parameters and may return values.
 
-**NOTE:** This library is in development process. There may be big changes to it.
+**NOTE:** This library has currently not a stable version. You are welcome, to use this library in your project and
+report issues or improvements.
 
 Features
 --------
@@ -35,7 +36,7 @@ To call it at the *client:*
    result = server.add(5, 10)
    print(result) # Output: 15
    
-More simple examples: https://github.com/JulianSobott/networking/tree/master/pynetworking_examples
+More simple examples: https://github.com/JulianSobott/pynetworking/tree/master/pynetworking_examples
 
 .. _Installation:
 
@@ -48,16 +49,16 @@ The easiest way to install is to use `pip <https://pip.pypa.io/en/stable/quickst
 
    pip install pynetworking
 
-It is also possible to clone the repository from `Github <https://github.com/JulianSobott/networking>`_ with:
+It is also possible to clone the repository from `Github <https://github.com/JulianSobott/pynetworking>`_ with:
 
 .. code-block:: console
 
-   git clone https://github.com/JulianSobott/networking.git
+   git clone https://github.com/JulianSobott/pynetworking.git
 
 Documentation
 --------------
 
-Latest stable documentation: https://networking.readthedocs.io/en/latest/
+Latest stable documentation: https://pynetworking.readthedocs.io/en/latest/
 
 Or if you want the current documentation in a branch (e.g. dev), you can clone the repository,
 open the cmd and cd to the `docs` folder. You need `sphinx  <http://www.sphinx-doc.org/en/master/>`_ installed. Then
