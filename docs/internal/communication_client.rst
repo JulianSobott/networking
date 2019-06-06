@@ -1,4 +1,4 @@
 Client-side communication
 =========================
 
-.. automodule:: networking.Communication_client
+.. automodule:: pynetworking.Communication_client

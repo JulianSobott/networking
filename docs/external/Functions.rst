@@ -89,9 +89,9 @@ every function needs to be redefined.
 Classes
 -------
 
-.. autoclass:: networking.Communication_general.Functions
+.. autoclass:: pynetworking.Communication_general.Functions
     :noindex:
-.. autoclass:: networking.Communication_server.ClientFunctions
+.. autoclass:: pynetworking.Communication_server.ClientFunctions
     :noindex:
-.. autoclass:: networking.Communication_client.ServerFunctions
+.. autoclass:: pynetworking.Communication_client.ServerFunctions
     :noindex:
