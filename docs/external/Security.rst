@@ -3,7 +3,7 @@ Security
 
 Although the goal of this library is easy and fast usability, some security
 aspects were implemented. In short: All messages are encrypted with a symmetric communication key,
-that only the server and the client knows.
+that only the server and the client knows. The key exchange is asymmetric.
 
 Procedure to provide a minimal security:
 -----------------------------------------
@@ -16,7 +16,7 @@ This process is automatically executed, after a client has connected to a server
 - The server encrypts the communication key with the clients public key
 - The encrypted communication key is sent back to the client
 - The client decrypts the communication key with its private key
-- Both sides store the communication
+- Both sides store the communication key
 - All messages are now encrypted with the communication key
 
 Security vulnerabilities!

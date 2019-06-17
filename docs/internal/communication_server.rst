@@ -1,4 +1,4 @@
 Server-side communication
 =========================
 
-.. automodule:: networking.Communication_server
+.. automodule:: pynetworking.Communication_server

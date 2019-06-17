@@ -254,7 +254,8 @@ Now you can start your server, then start the client. At the client you are prom
 and password. Enter any random value and see if you were successfully logged in.
 Some parts of the code could look pretty complicated. The good thing is, you don't have to understand what is going on, you \
 just need to know how to set everything up. (If you are really interested in the stuff behind the scenes you are welcome \
-to have a look at the `Github repository <https://github.com/JulianSobott/networking>`_ ). The code that you have created \
+to have a look at the `Github repository <https://github.com/JulianSobott/pynetworking>`_ ). The code that you have
+created \
 can be pretty much copy and pasted to every new project. You only need to change the function includes in *interface.py*.
 
 WHAT IS NEXT?
@@ -264,7 +265,7 @@ You can also try what happens when an error is risen. The cool thing is, that yo
 but keep in mind everything works over a network and is transmitted over a tcp-connection. When you are finished with your experiments \
 you can start your own project. When starting a new project this :doc:`checklist for new projects <Checklist>` will
 help you to add everything necessary. You can also checkout other example at the
-`Github repository <https://github.com/JulianSobott/networking/tree/master/pynetworking_examples>`__.
+`Github repository <https://github.com/JulianSobott/pynetworking/tree/master/pynetworking_examples>`__.
 
 FINAL CODE
 ----------

@@ -16,7 +16,7 @@ from pynetworking.tests.example_functions import DummyPerson, DummyServerCommuni
 dummy_address = ("localhost", 5000)
 server_address = ("0.0.0.0", 5000)
 
-#logger.setLevel(0)
+logger.setLevel(10)
 
 
 class CommunicationTestCase(unittest.TestCase):
@@ -71,6 +71,7 @@ class TestConnecting(CommunicationTestCase):
 
     def test_single_client(self):
         with ClientManager(server_address, DummyClientCommunicator) as listener:
+            wait_till_condition(lambda : False is True, timeout=2)
             DummyServerCommunicator.connect(dummy_address)
 
             wait_till_condition(lambda: len(listener.clients) == 1, timeout=1)
@@ -79,7 +80,6 @@ class TestConnecting(CommunicationTestCase):
             self.assertEqual(get_num_non_dummy_threads(), 4)  # Main, listener, client_communicator, server_communicator
             self.assertEqual(listener.clients[to_server_id(0)].communicator._socket_connection.getpeername(),
                              DummyServerCommunicator.communicator._socket_connection.getsockname())
-
             DummyServerCommunicator.close_connection()
             DummyServerCommunicator.close_connection()
             wait_till_joined(DummyServerCommunicator.communicator, timeout=1)
@@ -87,7 +87,7 @@ class TestConnecting(CommunicationTestCase):
             # wait_till_condition(lambda: get_num_non_dummy_threads() == 2)
 
             self.assertEqual(get_num_non_dummy_threads(), 2)  # Main, listener
-        wait_till_joined(listener)
+        wait_till_joined(listener, timeout=1)
 
         self.assertEqual(get_num_non_dummy_threads(), 1)
 
@@ -128,7 +128,7 @@ class TestConnecting(CommunicationTestCase):
     def test_server_turn_on(self):
         DummyServerCommunicator.connect(dummy_address, blocking=False)
         with ClientManager(server_address, DummyClientCommunicator) as listener:
-            wait_till_condition(lambda: DummyServerCommunicator._exchanged_keys is True, timeout=2)
+            wait_till_condition(lambda: DummyServerCommunicator._exchanged_keys is True, timeout=4)
             self.assertEqual(len(listener.clients), 1)
             self.assertEqual(True, DummyServerCommunicator._exchanged_keys)
             DummyServerCommunicator.close_connection()

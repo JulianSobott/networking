@@ -1,4 +1,4 @@
 Data
 ========
 
-.. automodule:: networking.Data
+.. automodule:: pynetworking.Data

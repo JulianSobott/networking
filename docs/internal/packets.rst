@@ -1,4 +1,4 @@
 Packets
 ============
 
-.. automodule:: networking.Packets
+.. automodule:: pynetworking.Packets

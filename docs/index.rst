@@ -1,4 +1,4 @@
-.. networking documentation master file, created by
+.. pynetworking documentation master file, created by
    sphinx-quickstart on Tue Feb 26 18:00:00 2019.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
@@ -27,7 +27,7 @@ Features
 --------
 - Directly call functions at the remote side
 - Get the return values
-- Don`t care about sockets
+- Don't care about sockets
 
 Example
 ---------
@@ -59,21 +59,28 @@ The easiest way to install is to use `pip <https://pip.pypa.io/en/stable/quickst
 
 .. code-block:: console
 
-   pip install networking
+   pip install pynetworking
 
-It is also possible to clone the repository from `Github <https://github.com/JulianSobott/networking>`_ with:
+It is also possible to clone the repository from `Github <https://github.com/JulianSobott/pynetworking>`_ with:
 
 .. code-block:: console
 
-   git clone https://github.com/JulianSobott/networking.git
+   git clone https://github.com/JulianSobott/pynetworking.git
 
+Getting started
+-----------------
 
+Checkout the :doc:`getting started <external/Getting_started>` guide. In this guide you will learn how to write a simple
+login application. This guide covers all basics, that are necessary.
+
+If you are already familiar with this library and just need a brief recap, there is a
+:doc:`checklist <external/Checklist>`
 
 Contribute
 ----------
 
-- Issue Tracker: github.com/JulianSobott/networking/issues
-- Source Code: github.com/JulianSobott/networking
+- Issue Tracker: https://github.com/JulianSobott/pynetworking/issues
+- Source Code: https://github.com/JulianSobott/pynetworking
 
 
 License

@@ -1,4 +1,4 @@
 General communication
 ======================
 
-.. automodule:: networking.Communication_general
+.. automodule:: pynetworking.Communication_general

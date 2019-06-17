@@ -1,4 +1,4 @@
 ID management
 ================
 
-.. automodule:: networking.ID_management
+.. automodule:: pynetworking.ID_management

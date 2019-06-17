@@ -11,11 +11,11 @@ page.
 
     2.2 ClientFunctions (:doc:`Functions`)
 
-    2.3 ServerCommunicator ()
+    2.3 ServerCommunicator (:class:`~pynetworking.Communication_client.ServerCommunicator`)
 
-    2.4 ClientCommunicator ()
+    2.4 ClientCommunicator (:class:`~pynetworking.Communication_server.ClientCommunicator`)
 
-3. Start the server with :class:`ClientManager`
-4. Start the client with created :class:`ServerCommunicator`
+3. Start the server with :class:`~pynetworking.Communication_server.ClientManager`
+4. Start the client with created :class:`~pynetworking.Communication_client.ServerCommunicator`
 
 While you are working on your project, remember to add necessary functions to the :doc:`Functions`.
