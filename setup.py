@@ -18,7 +18,7 @@ if __name__ == '__main__':
           version='0.1.2',
           description='High level network communication',
           long_description=long_description,
-          url='https://github.com/JulianSobott/networking',
+          url='https://github.com/JulianSobott/pynetworking',
           author='Julian Sobott',
           author_email='julian.sobott@gmx.de',
           license='Apache',
@@ -27,9 +27,9 @@ if __name__ == '__main__':
           include_package_data=True,
           keywords='network packet communication',
           project_urls={
-            "Bug Tracker": "https://github.com/JulianSobott/networking/issues",
-            "Documentation": "http://networking.readthedocs.io/",
-            "Source Code": "https://github.com/JulianSobott/networking",
+            "Bug Tracker": "https://github.com/JulianSobott/pynetworking/issues",
+            "Documentation": "http://pynetworking.readthedocs.io/",
+            "Source Code": "https://github.com/JulianSobott/pynetworking",
           },
           classifiers=[
             "Programming Language :: Python :: 3.7",

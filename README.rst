@@ -67,15 +67,17 @@ you can type `make html` and see the local created docs.
 Getting started
 -----------------
 
-There is a `getting started <https://networking.readthedocs.io/en/latest/external/Getting_started.html>`_ guide at the documentation. In this guide you will learn how to write a simple login application. This guide covers all basics, that are necessary. 
+There is a `getting started <https://pynetworking.readthedocs.io/en/latest/external/Getting_started.html>`_ guide at
+the documentation. In this guide you will learn how to write a simple login application. This guide covers all basics, that are necessary.
 
-If you are already familiar with this library and just need a brief recap, there is a `checklist <https://networking.readthedocs.io/en/latest/external/Checklist.html>`_ for what you need in new projects.
+If you are already familiar with this library and just need a brief recap, there is a `checklist <https://pynetworking
+.readthedocs.io/en/latest/external/Checklist.html>`_ for what you need in new projects.
 
 Contribute
 ----------
 
-- Issue Tracker: https://github.com/JulianSobott/networking/issues
-- Source Code: https://github.com/JulianSobott/networking
+- Issue Tracker: https://github.com/JulianSobott/pynetworking/issues
+- Source Code: https://github.com/JulianSobott/pynetworking
 
 
 License
