@@ -104,10 +104,10 @@ class Communicator(threading.Thread):
                  on_close: Optional[Callable[['Communicator'], Any]] = None, local_functions=Type['Functions']) -> None:
         super().__init__(name=f"{'Client' if from_accept else 'Server'}_Communicator_thread_{id_}")
         self._recv_timeout = 1
-        if socket_connection is None:
-            socket_connection = socket.socket()
+
         self._socket_connection = socket_connection
-        self._socket_connection.settimeout(self._recv_timeout)
+        if socket_connection is not None:
+            self._socket_connection.settimeout(self._recv_timeout)
 
         self._address = address
         self._id = id_
@@ -359,7 +359,8 @@ class Communicator(threading.Thread):
         else:
             logger.info(f"Stopping communicator: {self._id}")
             self._exit.set()
-            self._socket_connection.close()
+            if self._socket_connection is not None:
+                self._socket_connection.close()
             self._is_connected = False
             if not is_same_thread:
                 self.join()
