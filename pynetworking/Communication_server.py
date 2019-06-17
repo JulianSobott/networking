@@ -80,9 +80,9 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
     def __init__(self, address: SocketAddress = None, client_communicator: Type['ClientCommunicator'] = None) -> None:
         super().__init__(name="ClientManager")
         self._socket_connection = socket.socket()
+        self._socket_connection.settimeout(1)
         self.clients: Dict[int, ClientCommunicator] = {}
         self._next_client_id = 0
-        self._is_on = True
         self._address = address
         self._exit = threading.Event()
         self._client_communicator = client_communicator
@@ -100,12 +100,12 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
         except OSError as e:
             # [WinError 10038] socket closed before
             logger.error(e)
-            self._is_on = False
+            self._exit.set()
         except socket.gaierror:
             raise ValueError(
                 f"Address error. {self._address} is not a valid address. Address must be of type {SocketAddress}")
 
-        while self._is_on:
+        while not self._exit.is_set():
             try:
                 (connection, addr) = self._socket_connection.accept()
                 logger.info("New client connected: (%s)", str(addr))
@@ -114,10 +114,13 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
                 client = self._client_communicator(client_communicator_id, self._address, connection,
                                                    self._remove_disconnected_client)
                 self._add_client(client_communicator_id, client)
-            except OSError:
-                if self._is_on:
-                    logger.error("TCP connection closed while listening")
-                    # TODO: handle (if possible)
+            except OSError as e:
+                if not isinstance(e, socket.timeout):
+                    if not self._exit.is_set():
+                        logger.error("TCP connection closed while listening")
+                        # TODO: handle (if possible)
+                    else:
+                        logger.debug("GOOD osError")
 
     def _add_client(self, client_communicator_id: int, client: 'ClientCommunicator'):
         self.clients[client_communicator_id] = client
@@ -150,9 +153,9 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
 
     def mainloop(self):
         """Runs the server till it is stopped by a `KeyboardInterrupt`"""
-        while self._is_on:
+        while not self._exit.is_set():
             try:
-                time.sleep(5)
+                self._exit.wait(5)
             except KeyboardInterrupt:
                 break
 
@@ -164,8 +167,9 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
             logger.error(f"Trying to remove a client that was never connected! {self.clients}: {communicator.get_id()}")
 
     def stop_listening(self) -> None:
-        self._is_on = False
+        self._exit.set()
         self._socket_connection.close()
+        logger.debug("try to join ClientManager")
         self.join()
         logger.info("Closed server listener")
 

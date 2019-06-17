@@ -100,13 +100,17 @@ class Communicator(threading.Thread):
     """
     CHUNK_SIZE = 4096
 
-    def __init__(self, address: SocketAddress, id_, socket_connection=socket.socket(), from_accept=False,
+    def __init__(self, address: SocketAddress, id_, socket_connection: socket.socket = None, from_accept=False,
                  on_close: Optional[Callable[['Communicator'], Any]] = None, local_functions=Type['Functions']) -> None:
         super().__init__(name=f"{'Client' if from_accept else 'Server'}_Communicator_thread_{id_}")
+        self._recv_timeout = 1
+        if socket_connection is None:
+            socket_connection = socket.socket()
         self._socket_connection = socket_connection
+        self._socket_connection.settimeout(self._recv_timeout)
+
         self._address = address
         self._id = id_
-        self._is_on = True
         self._is_connected = from_accept
         self._keep_connection = not from_accept
         self._packets: List[Packet] = []
@@ -139,7 +143,7 @@ class Communicator(threading.Thread):
         """Waits till a data-packet is received and returns it. If a function packet is received instead it is
         executed first."""
         waited = 0.
-        while self._is_on:
+        while not self._exit.is_set():
             next_global_id = IDManager(self._id).get_next_outer_id()
             try:
                 next_packet = self._packets.pop(0)
@@ -174,9 +178,10 @@ class Communicator(threading.Thread):
 
     def _connect(self, seconds_till_next_try: float = 2, timeout: float = -1) -> bool:
         waited = 0
-        while self._is_on and not self._is_connected:
+        while not self._exit.is_set() and not self._is_connected:
             try:
                 self._socket_connection = socket.create_connection(self._address)
+                self._socket_connection.settimeout(self._recv_timeout)
                 self._is_connected = True
                 logger.info(f"Successfully connected to: {str(self._address)}")
                 return True
@@ -201,8 +206,8 @@ class Communicator(threading.Thread):
         """Loop that is constantly receiving or waiting for new packets from the tcp-connection."""
         plain_byte_stream = ByteStream(b'')
         encrypted_byte_stream = ByteStream(b'')
-        while self._is_on:
-            if self._is_on and not self._is_connected:
+        while not self._exit.is_set():
+            if not self._exit.is_set() and not self._is_connected:
                 if self._keep_connection:
                     self._connect()
                 else:
@@ -228,7 +233,7 @@ class Communicator(threading.Thread):
         encrypted_data = encrypted_byte_stream.next_all_bytes()
         encrypted_byte_stream.remove_consumed_bytes()
         try:
-            while True:
+            while not self._exit.is_set():
                 chunk_data = self._socket_connection.recv(self.CHUNK_SIZE)
                 if chunk_data == b"":
                     logger.info("Connection reset, (%s)", str(self._address))
@@ -247,24 +252,25 @@ class Communicator(threading.Thread):
                         encrypted_data += chunk_data
 
         except ConnectionResetError:
-            if self._is_on:
+            if not self._exit.is_set():
                 logger.warning(f"Connection reset at ID({self._id}), {self._address}")
             self._is_connected = False
 
         except ConnectionAbortedError:
-            if self._is_on:
+            if not self._exit.is_set():
                 logger.warning(f"Connection aborted at ID({self._id}), {self._address}")
             self._is_connected = False
 
-        except OSError:
-            if self._is_on:
-                logger.warning("TCP connection closed while listening")
-            self._is_connected = False
+        except OSError as e:
+            if not isinstance(e, socket.timeout):
+                if not self._exit.is_set():
+                    logger.warning("TCP connection closed while listening")
+                self._is_connected = False
 
     def _recv_packet(self, plain_byte_stream: ByteStream, encrypted_byte_stream: ByteStream,) -> Optional[Packet]:
         """Receives bytes till a packet can be build. This packet is returned"""
         packet_builder = PacketBuilder(plain_byte_stream)
-        while True:
+        while not self._exit.is_set():
             chunk_data = self._recv_data(plain_byte_stream, encrypted_byte_stream)
             if chunk_data == b"" or chunk_data is None:
                 return None
@@ -287,6 +293,9 @@ class Communicator(threading.Thread):
         with open(file_path, "ab") as file:
             while remaining_bytes > 0:
                 data = self._recv_data(plain_byte_stream, encrypted_byte_stream)
+                if data is None:
+                    logger.error("Connection aborted, while receiving file!")
+                    return
                 write_data = data[:remaining_bytes]
                 appended_data = data[remaining_bytes:]
                 file.write(write_data)
@@ -349,7 +358,6 @@ class Communicator(threading.Thread):
             logger.debug("Prevented closing already closed communicator")
         else:
             logger.info(f"Stopping communicator: {self._id}")
-            self._is_on = False
             self._exit.set()
             self._socket_connection.close()
             self._is_connected = False

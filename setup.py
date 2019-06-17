@@ -15,7 +15,7 @@ def my_test_suite():
 
 if __name__ == '__main__':
     setup(name='pynetworking',
-          version='0.1.2',
+          version='0.1.3',
           description='High level network communication',
           long_description=long_description,
           url='https://github.com/JulianSobott/pynetworking',
