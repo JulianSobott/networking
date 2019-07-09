@@ -119,8 +119,6 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
                     if not self._exit.is_set():
                         logger.error("TCP connection closed while listening")
                         # TODO: handle (if possible)
-                    else:
-                        logger.debug("GOOD osError")
 
     def _add_client(self, client_communicator_id: int, client: 'ClientCommunicator'):
         self.clients[client_communicator_id] = client
@@ -169,7 +167,6 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
     def stop_listening(self) -> None:
         self._exit.set()
         self._socket_connection.close()
-        logger.debug("try to join ClientManager")
         self.join()
         logger.info("Closed server listener")
 

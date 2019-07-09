@@ -7,6 +7,6 @@ if __name__ == '__main__':
     logger.setLevel(30)
     test_loader = unittest.TestLoader()
     test_suite = test_loader.discover('pynetworking.tests', pattern='test_*.py')
-    test_suite._tests.pop(1)    # Exclude communication tests, because they don't work
+    # test_suite._tests.pop(1)    # Exclude communication tests, because they don't work
     runner = unittest.TextTestRunner(stream=sys.stderr)
     runner.run(test_suite)
