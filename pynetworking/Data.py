@@ -244,14 +244,17 @@ class File:
     """This class represents a file that should be sent. If a file is to be sent, an object of this class shall be
     sent with the proper paths. This internally sends the file."""
 
-    def __init__(self, src_path: str, dst_path: str) -> None:
+    def __init__(self, src_path: str, dst_path: str, size=None) -> None:
         self.src_path = src_path
         self.dst_path = dst_path
-        self.size = os.path.getsize(src_path)
+        if size is None:
+            self.size = os.path.getsize(src_path)
+        else:
+            self.size = size
 
     @classmethod
     def from_meta_packet(cls, file_meta_packet):
-        return cls(file_meta_packet.src_path, file_meta_packet.dst_path)
+        return cls(file_meta_packet.src_path, file_meta_packet.dst_path, file_meta_packet.file_size)
 
 
 def pack_int_type(int_type: int) -> bytes:
