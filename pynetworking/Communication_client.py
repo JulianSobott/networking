@@ -70,7 +70,7 @@ def exchange_keys(connector: Union['Connector', Type['SingleConnector']]):
     `communication key`"""
     # generate public key + private key
     cryptographer = connector.communicator.cryptographer
-    cryptographer.generate_pgp_key_pair()
+    cryptographer.generate_key_pair()
     serialized_public_key = cryptographer.get_serialized_public_key()
     IDManager(connector.get_id()).append_dummy_functions(2)
     # send public key
@@ -80,7 +80,7 @@ def exchange_keys(connector: Union['Connector', Type['SingleConnector']]):
     communication_packet = connector.communicator.wait_for_response()
     encrypted_communication_key = communication_packet.data["communication_key"]
     # decrypt key with private key
-    communication_key = cryptographer.decrypt_pgp_msg(encrypted_communication_key)
+    communication_key = cryptographer.decrypt_with_private_key(encrypted_communication_key)
     # set communication key
     cryptographer.communication_key = communication_key
     connector._exchanged_keys = True

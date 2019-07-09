@@ -228,7 +228,7 @@ class TestCommunicating(CommunicationTestCase):
         import os
         file_path = os.path.join(os.path.split(__file__)[0], "dummy.txt")
         with open(file_path, "w+") as f:
-            for i in range(100):
+            for i in range(400):
                 f.write("H"*100000)
 
         destination_path = os.path.join(os.path.split(__file__)[0], "new_file.txt")

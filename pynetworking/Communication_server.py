@@ -244,7 +244,7 @@ def exchange_keys(client_communicator: ClientCommunicator):
     serialized_public_key = public_key_packet.data["public_key"]
     cryptographer.public_key_from_serialized_key(serialized_public_key)
 
-    encrypted_communication_key = cryptographer.encrypt_pgp_msg(serialized_communication_key)
+    encrypted_communication_key = cryptographer.encrypt_with_public_key(serialized_communication_key)
     # send communication key
     communication_packet = DataPacket(communication_key=encrypted_communication_key)
     client_communicator.communicator.send_packet(communication_packet)
