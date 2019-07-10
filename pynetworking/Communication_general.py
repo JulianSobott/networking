@@ -153,7 +153,7 @@ class Communicator(threading.Thread):
                     # TODO: handle
                 elif actual_outer_id < next_global_id:
                     logger.error(f"Unhandled Packet! Expected outer_id: {next_global_id}. "
-                                 f"Got instead: {actual_outer_id}")
+                                 f"actual: {actual_outer_id}, Communicator id: {self._id}")
                     # TODO: handle (if possible)
                 else:
                     if isinstance(next_packet, Packet):

@@ -162,7 +162,7 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
         try:
             self.clients.pop(communicator.get_id())
         except KeyError:
-            logger.error(f"Trying to remove a client that was never connected! {self.clients}: {communicator.get_id()}")
+            logger.error(f"Trying to remove a client that was already removed! {self.clients}: {communicator.get_id()}")
 
     def stop_listening(self) -> None:
         self._exit.set()
