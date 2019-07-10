@@ -1,6 +1,6 @@
-Getting started!
+Getting started
 ================
-After you installed the package you can start setting up your project.
+After you :ref:`installed <Installation>` the package you can start setting up your project.
 There are some parts you always need to add to your project. This tutorial will guide you through all necessary parts, \
 will explain them and shows alternatives.
 At the end of this tutorial you will have a login application. The focus is to introduce \
@@ -99,7 +99,7 @@ STEP 3: Setup the 'pynetworking' stuff
 
 But because there is always a network between a server and a client, we need another way of calling a server-side function.
 This is where the pynetworking library comes in. We now need to setup a few things in the interface. We start by importing \
-the pynetworking library and overwriting the :doc:`Functions`. These classes define which functions can be called \
+the pynetworking library and overriding the :doc:`Functions`. These classes define which functions can be called \
 at the server/client.
 
 *interface.py*
@@ -116,10 +116,11 @@ at the server/client.
         """All client functions, that can be called by the server"""
         from client import get_username, get_password
 
-Take a look at the :doc:`Functions` page to see alternative ways of overwriting these classes.
+Take a look at the :doc:`Functions` page to see alternative ways of overriding these classes.
 
-Now we need to overwrite the classes that are responsible for communication. You do not need to know how the communication classes \
-work. It is only important, that you don't forget to overwrite them and don't change the attributes.
+Now we need to override the classes that are responsible for communication. You do not need to know how the
+communication classes \
+work. It is only important, that you don't forget to override them and don't change the attributes.
 
 *interface.py*
 
