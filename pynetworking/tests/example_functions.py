@@ -13,6 +13,11 @@ from pynetworking.Logging import logger
 
 
 class _DummyServerFunctions(net.ServerFunctions):
+
+    @staticmethod
+    def return_client_id() -> int:
+        return net.ClientManager().get().id
+
     @staticmethod
     def no_arg_no_ret() -> None:
         return no_arg_no_ret()

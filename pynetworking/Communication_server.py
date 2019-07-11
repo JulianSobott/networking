@@ -162,6 +162,8 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
         try:
             self.clients.pop(communicator.get_id())
         except KeyError:
+            import traceback
+            traceback.print_stack()
             logger.error(f"Trying to remove a client that was already removed! {self.clients}: {communicator.get_id()}")
 
     def stop_listening(self) -> None:
@@ -171,10 +173,14 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
         logger.info("Closed server listener")
 
     def stop_connections(self) -> None:
+        logger.debug(f"Close connections: {self.clients}")
         while len(self.clients.items()) > 0:
             client_id = self.clients.keys().__iter__().__next__()
             client = self.clients[client_id]
-            client.close_connection()
+            if client.communicator.is_connected():
+                client.close_connection()
+            else:
+                self.clients.pop(client_id)
 
     def __enter__(self) -> 'ClientManager':
         self.start()
