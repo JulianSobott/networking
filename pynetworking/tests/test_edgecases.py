@@ -35,13 +35,14 @@ class TestManyClients(unittest.TestCase):
             client.connect(self.address)
             c_id = client.remote_functions.return_client_id()
             print(c_id)
+            time.sleep(5)
             client.close_connection()
 
-        for i in range(2):
+        for i in range(20):
             clients.append(DummyMultiServerCommunicator(i))
             thread_pool.append(threading.Thread(target=client_exe, args=(clients[i],)))
             thread_pool[i].start()
             time.sleep(0.1)
 
-        for t in thread_pool:
-            t.join()
+        time.sleep(1)
+        logger.debug("Finished")
