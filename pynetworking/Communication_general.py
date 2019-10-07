@@ -520,7 +520,7 @@ class Connector:
         """Connects the passed `connector` to the server. This is done, by creating a new :class:`Communicator`,
         that connects to the server. Also creates a relation between this connector and the remote_functions. The
         connection process can be executed in a separate thread."""
-        if connector.communicator is None:
+        if connector.communicator is None or not connector.communicator.is_connected():
             connector.communicator = Communicator(addr, id_=connector._id, local_functions=connector.local_functions)
             try:
                 connector.remote_functions.__setattr__(connector.remote_functions, "_connector", connector)

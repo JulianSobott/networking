@@ -7,7 +7,7 @@ verify_ssl = true
 cryptography = "*"
 dill = "*"
 
-[dev]
+[dev-packages]
 thread-testing = "*"
 
 [requires]

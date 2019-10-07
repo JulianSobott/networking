@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f8965368f3b80597e657ba00a0a99859fa9447b0544abb34b729429a884093c6"
+            "sha256": "fcef2ca22d3e32f4c7fb6aa39bf395aa33359261bbd757b70f6753373ebc652d"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -18,10 +18,10 @@
     "default": {
         "asn1crypto": {
             "hashes": [
-                "sha256:2f1adbb7546ed199e3c90ef23ec95c5cf3585bac7d11fb7eb562a3fe89c64e87",
-                "sha256:9d5c20441baf0cb60a4ac34cc447c6c189024b6b4c6cd7877034f4965c464e49"
+                "sha256:0b199f211ae690df3db4fd6c1c4ff976497fb1da689193e368eedbadc53d9292",
+                "sha256:bca90060bd995c3f62c4433168eab407e44bdbdb567b3f3a396a676c1a4c4a3f"
             ],
-            "version": "==0.24.0"
+            "version": "==1.0.1"
         },
         "cffi": {
             "hashes": [
@@ -80,10 +80,10 @@
         },
         "dill": {
             "hashes": [
-                "sha256:993409439ebf7f7902d9de93eaa2a395e0446ff773d29f13dc46646482f76906"
+                "sha256:42d8ef819367516592a825746a18073ced42ca169ab1f5f4044134703e7a049c"
             ],
             "index": "pypi",
-            "version": "==0.3.0"
+            "version": "==0.3.1.1"
         },
         "pycparser": {
             "hashes": [
@@ -99,5 +99,14 @@
             "version": "==1.12.0"
         }
     },
-    "develop": {}
+    "develop": {
+        "thread-testing": {
+            "hashes": [
+                "sha256:06a8dad57696842edddea1d9fddab804534b6d2c29b7cb3d65978b5ebf3fdbe7",
+                "sha256:b63c7c27683096ad94d0be33007f89425ddab44c7c224138179ee3ec189c4ee4"
+            ],
+            "index": "pypi",
+            "version": "==0.1"
+        }
+    }
 }
