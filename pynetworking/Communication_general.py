@@ -615,7 +615,8 @@ class SingleConnector(Connector):
     applications this class is sufficient and the :class:`MultiConnector` isn't needed."""
 
     @classmethod
-    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf"), exchange_keys_function=None) -> bool:
+    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf"), exchange_keys_function=None) \
+            -> Optional[bool]:
         return super().connect(cls, addr, blocking, timeout, exchange_keys_function)
 
     @classmethod

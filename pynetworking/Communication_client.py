@@ -41,7 +41,7 @@ class ServerCommunicator(SingleConnector):
         """
 
     @classmethod
-    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf"), **kwargs) -> bool:
+    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf"), **kwargs) -> Optional[bool]:
         connected = super().connect(addr, blocking, timeout, exchange_keys)
         return connected
 
@@ -53,7 +53,7 @@ class MultiServerCommunicator(MultiConnector):
     the same object is returned, like a Singleton.
     """
 
-    def connect(self, addr: SocketAddress, blocking=True, timeout=float("inf"), **kwargs) -> bool:
+    def connect(self, addr: SocketAddress, blocking=True, timeout=float("inf"), **kwargs) -> Optional[bool]:
         connected = super().connect(addr, blocking, timeout, exchange_keys)
         return connected
 
