@@ -633,9 +633,10 @@ class Functions(metaclass=MetaFunctionCommunicator):
         :attr:`__dict__` attribute.
 
             """
-    _connector: Optional[Communicator] = None
+    _connector: Optional[Connector] = None
 
     def __new__(cls, *args, **kwargs):
+        # TODO: test if necessary. if not remove
         pass
 
 
