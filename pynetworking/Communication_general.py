@@ -639,10 +639,6 @@ class Functions(metaclass=MetaFunctionCommunicator):
             """
     _connector: Optional[Connector] = None
 
-    def __new__(cls, *args, **kwargs):
-        # TODO: test if necessary. if not remove
-        pass
-
 
 class FunctionExecutionThread(threading.Thread):
     """Executes a received function in a separate thread."""
