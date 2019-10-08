@@ -517,7 +517,7 @@ class Connector:
 
     @staticmethod
     def connect(connector: Union['Connector', Type['SingleConnector']], addr: SocketAddress, blocking=True,
-                timeout=float("inf"), exchange_keys_function=None) -> bool:
+                timeout=float("inf"), exchange_keys_function=None) -> Optional[bool]:
         """Connects the passed `connector` to the server. This is done, by creating a new :class:`Communicator`,
         that connects to the server. Also creates a relation between this connector and the remote_functions. The
         connection process can be executed in a separate thread."""
@@ -528,6 +528,7 @@ class Connector:
                 # self argument, must be provided
             except TypeError:
                 raise AttributeError("Communicator functions are not set.")
+
             connector.communicator.start()
 
             def try_connect():
@@ -539,16 +540,17 @@ class Connector:
                 if waited >= timeout:
                     logger.warning(f"Stopped trying to connect to server after {int(waited)} seconds due to timeout")
                     connector.communicator.stop()
+                    connector.communicator = None
+                    return False
                     # raise TimeoutError(f"Stopped trying to connect to server after {int(waited)} seconds")
                 elif ENCRYPTED_COMMUNICATION is True:
                     exchange_keys_function(connector)
+                return True
 
             if blocking:
-                try_connect()
+                return try_connect()
             else:
                 threading.Thread(target=try_connect, name=f"Connector_{connector._id}").start()
-        assert isinstance(connector.communicator, Communicator)
-        return connector.communicator.is_connected()
 
     @staticmethod
     def close_connection(connector: Union['Connector', Type['SingleConnector']], blocking=True,
