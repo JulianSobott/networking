@@ -212,6 +212,7 @@ class Communicator(threading.Thread):
                     self._connect()
                 else:
                     self.stop(is_same_thread=True)
+                    continue
             packet = self._recv_packet(plain_byte_stream, encrypted_byte_stream)
             if packet is not None:
                 if isinstance(packet, FileMetaPacket):
