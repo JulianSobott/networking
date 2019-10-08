@@ -74,8 +74,8 @@ from pynetworking.Data import ByteStream, File
 SocketAddress = Tuple[str, int]
 
 """Server and client ids are different to separate them, when server and client both run on the same machine."""
-CLIENT_ID_END = 30
-SERVER_ID_END = 0  # Max 30 servers
+CLIENT_ID_START = 30
+SERVER_ID_START = 0  # Max 30 servers
 
 ENCRYPTED_COMMUNICATION = True
 
@@ -87,11 +87,11 @@ def set_encrypted_communication(value: bool):
 
 
 def to_client_id(id_: int) -> int:
-    return int(id_ + CLIENT_ID_END)
+    return int(id_ + CLIENT_ID_START)
 
 
 def to_server_id(id_: int) -> int:
-    return int(id_ + SERVER_ID_END)
+    return int(id_ + SERVER_ID_START)
 
 
 class Communicator(threading.Thread):
@@ -357,7 +357,8 @@ class Communicator(threading.Thread):
         if self._closed:
             logger.debug("Prevented closing already closed communicator")
         else:
-            logger.info(f"Stopping communicator: {self._id}")
+            communicator_side = "Client" if self._id >= CLIENT_ID_START else "Server"
+            logger.info(f"Stopping {communicator_side}side communicator: {self._id}")
             self._exit.set()
             if self._socket_connection is not None:
                 self._socket_connection.close()
