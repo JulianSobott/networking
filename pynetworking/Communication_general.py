@@ -179,6 +179,7 @@ class Communicator(threading.Thread):
     def _connect(self, seconds_till_next_try: float = 2, timeout: float = -1) -> bool:
         waited = 0
         while not self._exit.is_set() and not self._is_connected:
+            # TODO: Get timeout time from Connector.connect
             try:
                 self._socket_connection = socket.create_connection(self._address)
                 self._socket_connection.settimeout(self._recv_timeout)
@@ -563,10 +564,10 @@ class Connector:
             if blocking:
                 waited = 0.
                 wait_time = 0.01
-                while connector.communicator.is_connected() and waited < timeout:
+                while connector.communicator and connector.communicator.is_connected() and waited < timeout:
                     time.sleep(wait_time)
                     waited += wait_time
-            connector.communicator: Optional[Communicator] = None
+            connector.communicator = None
 
     @staticmethod
     def is_connected(connector: Union['Connector', Type['SingleConnector']]) -> bool:
