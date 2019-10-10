@@ -128,7 +128,8 @@ class Communicator(threading.Thread):
         socket."""
         if not self._is_connected:
             self._connect()
-        self._wait_for_new_input()
+        if self.is_connected():
+            self._wait_for_new_input()
 
     def send_packet(self, packet: Packet) -> bool:
         """Set the proper ids and converts/packs the packet into bytes. Sends the bytes string."""
