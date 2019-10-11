@@ -177,12 +177,11 @@ class Communicator(threading.Thread):
                 logger.warning("wait_for_response waited too long")
                 raise TimeoutError("wait_for_response waited too long")
 
-    def _connect(self, seconds_till_next_try: float = 2, timeout: float = -1) -> bool:
-        waited = 0
+    def _connect(self, seconds_till_next_try: float = 2) -> bool:
         while not self._exit.is_set() and not self._is_connected:
             # TODO: Get timeout time from Connector.connect
             try:
-                self._socket_connection = socket.create_connection(self._address)
+                self._socket_connection = socket.create_connection(self._address, timeout=1)
                 self._socket_connection.settimeout(self._recv_timeout)
                 self._is_connected = True
                 logger.info(f"Successfully connected to: {str(self._address)}")
@@ -190,18 +189,13 @@ class Communicator(threading.Thread):
             except ConnectionRefusedError:
                 logger.warning("Could not connect to server with address: (%s)", str(self._address))
             except OSError as e:
-                logger.error("Is already connected to server")
-                logger.debug(e)
-                self._is_connected = True
+                logger.error(e)
             except socket.gaierror:
                 raise ValueError(
                     f"Address error. {self._address} is not a valid address. Address must be of type {SocketAddress}")
 
             self._exit.wait(seconds_till_next_try)
-            waited += seconds_till_next_try
-            if waited > timeout >= 0:
-                logger.warning("Connection timeout")
-                return False
+            logger.debug("Connection timeout. Trying again")
         return False
 
     def _wait_for_new_input(self):
@@ -364,7 +358,10 @@ class Communicator(threading.Thread):
             logger.info(f"Stopping {communicator_side}side communicator: {self._id}")
             self._exit.set()
             if self._socket_connection is not None:
-                self._socket_connection.close()
+                if self.is_connected():
+                    self._socket_connection.close()
+                else:
+                    self._socket_connection.shutdown(socket.SHUT_RDWR)
             self._is_connected = False
             if not is_same_thread:
                 self.join()
@@ -537,9 +534,11 @@ class Connector:
             def try_connect():
                 waited = 0.
                 wait_time = 0.01
-                while not connector.communicator.is_connected() and waited < timeout:
+                while connector.communicator and not connector.communicator.is_connected() and waited < timeout:
                     time.sleep(wait_time)
                     waited += wait_time
+                if connector.communicator is None:
+                    return False    # external shutdown
                 if waited >= timeout:
                     logger.warning(f"Stopped trying to connect to server after {int(waited)} seconds due to timeout")
                     connector.communicator.stop()
