@@ -119,8 +119,6 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
                     if not self._exit.is_set():
                         logger.error("TCP connection closed while listening")
                         # TODO: handle (if possible)
-                    else:
-                        logger.debug("GOOD osError")
 
     def _add_client(self, client_communicator_id: int, client: 'ClientCommunicator'):
         self.clients[client_communicator_id] = client
@@ -164,20 +162,25 @@ class ClientManager(threading.Thread, metaclass=MetaClientManager):
         try:
             self.clients.pop(communicator.get_id())
         except KeyError:
-            logger.error(f"Trying to remove a client that was never connected! {self.clients}: {communicator.get_id()}")
+            import traceback
+            traceback.print_stack()
+            logger.error(f"Trying to remove a client that was already removed! {self.clients}: {communicator.get_id()}")
 
     def stop_listening(self) -> None:
         self._exit.set()
         self._socket_connection.close()
-        logger.debug("try to join ClientManager")
         self.join()
         logger.info("Closed server listener")
 
     def stop_connections(self) -> None:
+        logger.debug(f"Close connections: {self.clients}")
         while len(self.clients.items()) > 0:
             client_id = self.clients.keys().__iter__().__next__()
             client = self.clients[client_id]
-            client.close_connection()
+            if client.communicator.is_connected():
+                client.close_connection()
+            else:
+                self.clients.pop(client_id)
 
     def __enter__(self) -> 'ClientManager':
         self.start()
@@ -244,7 +247,7 @@ def exchange_keys(client_communicator: ClientCommunicator):
     serialized_public_key = public_key_packet.data["public_key"]
     cryptographer.public_key_from_serialized_key(serialized_public_key)
 
-    encrypted_communication_key = cryptographer.encrypt_pgp_msg(serialized_communication_key)
+    encrypted_communication_key = cryptographer.encrypt_with_public_key(serialized_communication_key)
     # send communication key
     communication_packet = DataPacket(communication_key=encrypted_communication_key)
     client_communicator.communicator.send_packet(communication_packet)

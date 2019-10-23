@@ -22,4 +22,11 @@ class ClientCommunicator(net.ClientCommunicator):
     local_functions = ServerFunctions
 
 
+#: alias for all server functions
+server = ServerCommunicator.remote_functions
+
+
+def get_client() -> ClientCommunicator:
+    """Main purpose is to supply better auto completions"""
+    return net.ClientManager().get()
 

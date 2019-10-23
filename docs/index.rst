@@ -6,12 +6,15 @@
 Welcome to pynetworking's documentation!
 ==============================================
 
+**High level network communication**
+
 .. toctree::
    :maxdepth: 1
    :glob:
    :caption: Contents:
 
    external/Getting_started
+   external/Checklist
    external/Project_structures
    external/Checklist
    external/Functions
@@ -19,9 +22,12 @@ Welcome to pynetworking's documentation!
    internal/index
 
 
-This tool abstracts network communication to a level, where the end user don`t has to care about
+This tool abstracts network communication to a level, where you don't have to care about
 network communication. Server side functions can be called at the client as they were local. Functions may be called
 with parameters and may return values.
+
+**NOTE:** This library has currently not a stable version. You are welcome, to use this library in your project and
+report issues or improvements.
 
 Features
 --------
@@ -33,7 +39,7 @@ Example
 ---------
 
 When you have :doc:`setup everything <external/Checklist>` this is an example how easy it will
-be to communicate between the server and client:
+be to communicate between the server and a client:
 
 At the *server:*
 

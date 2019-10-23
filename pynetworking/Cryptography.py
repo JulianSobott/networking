@@ -56,7 +56,7 @@ class Cryptographer:
             return byte_string
         return self._fernet.decrypt(byte_string)
 
-    def generate_pgp_key_pair(self) -> tuple:
+    def generate_key_pair(self) -> tuple:
         self._private_key = rsa.generate_private_key(
             backend=crypto_default_backend(),
             public_exponent=65537,
@@ -84,7 +84,7 @@ class Cryptographer:
         )
         return self._public_key
 
-    def encrypt_pgp_msg(self, message: bytes) -> bytes:
+    def encrypt_with_public_key(self, message: bytes) -> bytes:
         return self._public_key.encrypt(
             message,
             padding.OAEP(
@@ -94,9 +94,9 @@ class Cryptographer:
             )
         )
 
-    def decrypt_pgp_msg(self, ciphertext: bytes) -> bytes:
+    def decrypt_with_private_key(self, cipher_text: bytes) -> bytes:
         return self._private_key.decrypt(
-            ciphertext,
+            cipher_text,
             padding.OAEP(
                 mgf=padding.MGF1(algorithm=hashes.SHA256()),
                 algorithm=hashes.SHA256(),

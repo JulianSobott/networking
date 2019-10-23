@@ -1,6 +1,7 @@
 import unittest
 import sys
 import os
+import time
 
 from thread_testing import get_num_non_dummy_threads, wait_till_joined, wait_till_condition
 
@@ -121,9 +122,13 @@ class TestConnecting(CommunicationTestCase):
         pynetworking.Communication_general.set_encrypted_communication(True)
 
     def test_offline_server(self):
-        connected = DummyServerCommunicator.connect(dummy_address, timeout=0)
+        i = 0
+        while not DummyServerCommunicator.connect(dummy_address, timeout=2):
+            i += 1
+            if i == 3:
+                break
         self.assertEqual(get_num_non_dummy_threads(), 1)
-        self.assertEqual(connected, False)
+        self.assertEqual(i, 3)
 
     def test_server_turn_on(self):
         DummyServerCommunicator.connect(dummy_address, blocking=False)
@@ -228,7 +233,7 @@ class TestCommunicating(CommunicationTestCase):
         import os
         file_path = os.path.join(os.path.split(__file__)[0], "dummy.txt")
         with open(file_path, "w+") as f:
-            for i in range(100):
+            for i in range(400):
                 f.write("H"*100000)
 
         destination_path = os.path.join(os.path.split(__file__)[0], "new_file.txt")

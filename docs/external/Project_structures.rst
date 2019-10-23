@@ -13,7 +13,7 @@ detailed explanation of every structure.
 |Single file               | + Just one file required    | - Not practical in reality    | - testing                  |
 |                          | + Only one process to start |                               | - learning                 |
 +--------------------------+-----------------------------+-------------------------------+----------------------------+
-|Client interface server   | + Only one interface        | - At big projects much        | - Small to medium projects |
+|Client, interface, server | + Only one interface        | - At big projects much        | - Small to medium projects |
 |                          |                             |   unused Code is located at   | - Disk space is no problem |
 |                          |                             |   the server and client       |                            |
 +--------------------------+-----------------------------+-------------------------------+----------------------------+
@@ -33,8 +33,8 @@ always separated. To see a implementation of this structure have a look at the *
 github.
 
 
-Client interface server
------------------------
+Client, interface, server
+---------------------------
 
 Three files *Client.py*, *Server.py*, *Interface.py* at server and client.
 

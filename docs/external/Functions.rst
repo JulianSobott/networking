@@ -1,7 +1,7 @@
 Functions classes
 =================
 
-Every program needs to overwrite two classes: :class:`ServerFunctions` and :class:`ClientFunctions`.
+Every program needs to override two classes: :class:`ServerFunctions` and :class:`ClientFunctions`.
 Both inherit from the base class :class:`Functions`. These classes define which functions are callable from the remote side.
 
 Usage examples:

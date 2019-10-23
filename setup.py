@@ -13,9 +13,11 @@ def my_test_suite():
     return test_suite
 
 
-if __name__ == '__main__':
+def main(version: str = "0.1.1"):
+    import sys
+    print(sys.argv)
     setup(name='pynetworking',
-          version='0.1.3',
+          version=version,
           description='High level network communication',
           long_description=long_description,
           url='https://github.com/JulianSobott/pynetworking',
@@ -27,16 +29,20 @@ if __name__ == '__main__':
           include_package_data=True,
           keywords='network packet communication',
           project_urls={
-            "Bug Tracker": "https://github.com/JulianSobott/pynetworking/issues",
-            "Documentation": "http://pynetworking.readthedocs.io/",
-            "Source Code": "https://github.com/JulianSobott/pynetworking",
+              "Bug Tracker": "https://github.com/JulianSobott/pynetworking/issues",
+              "Documentation": "http://pynetworking.readthedocs.io/",
+              "Source Code": "https://github.com/JulianSobott/pynetworking",
           },
           classifiers=[
-            "Programming Language :: Python :: 3.7",
-            "License :: OSI Approved :: Apache Software License",
-            "Operating System :: OS Independent",
-            "Topic :: Software Development :: Libraries",
-            ],
+              "Programming Language :: Python :: 3.7",
+              "License :: OSI Approved :: Apache Software License",
+              "Operating System :: OS Independent",
+              "Topic :: Software Development :: Libraries",
+          ],
           zip_safe=False,
-          install_requires=['cryptography', 'thread-testing', 'dill']
+          install_requires=['cryptography', 'dill']
           )
+
+
+if __name__ == '__main__':
+    main()

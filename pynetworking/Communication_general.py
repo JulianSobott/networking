@@ -74,8 +74,8 @@ from pynetworking.Data import ByteStream, File
 SocketAddress = Tuple[str, int]
 
 """Server and client ids are different to separate them, when server and client both run on the same machine."""
-CLIENT_ID_END = 30
-SERVER_ID_END = 0  # Max 30 servers
+CLIENT_ID_START = 30
+SERVER_ID_START = 0  # Max 30 servers
 
 ENCRYPTED_COMMUNICATION = True
 
@@ -87,11 +87,11 @@ def set_encrypted_communication(value: bool):
 
 
 def to_client_id(id_: int) -> int:
-    return int(id_ + CLIENT_ID_END)
+    return int(id_ + CLIENT_ID_START)
 
 
 def to_server_id(id_: int) -> int:
-    return int(id_ + SERVER_ID_END)
+    return int(id_ + SERVER_ID_START)
 
 
 class Communicator(threading.Thread):
@@ -104,10 +104,10 @@ class Communicator(threading.Thread):
                  on_close: Optional[Callable[['Communicator'], Any]] = None, local_functions=Type['Functions']) -> None:
         super().__init__(name=f"{'Client' if from_accept else 'Server'}_Communicator_thread_{id_}")
         self._recv_timeout = 1
-        if socket_connection is None:
-            socket_connection = socket.socket()
+
         self._socket_connection = socket_connection
-        self._socket_connection.settimeout(self._recv_timeout)
+        if socket_connection is not None:
+            self._socket_connection.settimeout(self._recv_timeout)
 
         self._address = address
         self._id = id_
@@ -128,7 +128,8 @@ class Communicator(threading.Thread):
         socket."""
         if not self._is_connected:
             self._connect()
-        self._wait_for_new_input()
+        if self.is_connected():
+            self._wait_for_new_input()
 
     def send_packet(self, packet: Packet) -> bool:
         """Set the proper ids and converts/packs the packet into bytes. Sends the bytes string."""
@@ -153,7 +154,7 @@ class Communicator(threading.Thread):
                     # TODO: handle
                 elif actual_outer_id < next_global_id:
                     logger.error(f"Unhandled Packet! Expected outer_id: {next_global_id}. "
-                                 f"Got instead: {actual_outer_id}")
+                                 f"actual: {actual_outer_id}, Communicator id: {self._id}")
                     # TODO: handle (if possible)
                 else:
                     if isinstance(next_packet, Packet):
@@ -179,6 +180,7 @@ class Communicator(threading.Thread):
     def _connect(self, seconds_till_next_try: float = 2, timeout: float = -1) -> bool:
         waited = 0
         while not self._exit.is_set() and not self._is_connected:
+            # TODO: Get timeout time from Connector.connect
             try:
                 self._socket_connection = socket.create_connection(self._address)
                 self._socket_connection.settimeout(self._recv_timeout)
@@ -212,6 +214,7 @@ class Communicator(threading.Thread):
                     self._connect()
                 else:
                     self.stop(is_same_thread=True)
+                    continue
             packet = self._recv_packet(plain_byte_stream, encrypted_byte_stream)
             if packet is not None:
                 if isinstance(packet, FileMetaPacket):
@@ -357,9 +360,11 @@ class Communicator(threading.Thread):
         if self._closed:
             logger.debug("Prevented closing already closed communicator")
         else:
-            logger.info(f"Stopping communicator: {self._id}")
+            communicator_side = "Client" if self._id >= CLIENT_ID_START else "Server"
+            logger.info(f"Stopping {communicator_side}side communicator: {self._id}")
             self._exit.set()
-            self._socket_connection.close()
+            if self._socket_connection is not None:
+                self._socket_connection.close()
             self._is_connected = False
             if not is_same_thread:
                 self.join()
@@ -515,17 +520,18 @@ class Connector:
 
     @staticmethod
     def connect(connector: Union['Connector', Type['SingleConnector']], addr: SocketAddress, blocking=True,
-                timeout=float("inf"), exchange_keys_function=None) -> bool:
+                timeout=float("inf"), exchange_keys_function=None) -> Optional[bool]:
         """Connects the passed `connector` to the server. This is done, by creating a new :class:`Communicator`,
         that connects to the server. Also creates a relation between this connector and the remote_functions. The
         connection process can be executed in a separate thread."""
-        if connector.communicator is None:
+        if connector.communicator is None or not connector.communicator.is_connected():
             connector.communicator = Communicator(addr, id_=connector._id, local_functions=connector.local_functions)
             try:
                 connector.remote_functions.__setattr__(connector.remote_functions, "_connector", connector)
                 # self argument, must be provided
             except TypeError:
                 raise AttributeError("Communicator functions are not set.")
+
             connector.communicator.start()
 
             def try_connect():
@@ -537,16 +543,17 @@ class Connector:
                 if waited >= timeout:
                     logger.warning(f"Stopped trying to connect to server after {int(waited)} seconds due to timeout")
                     connector.communicator.stop()
+                    connector.communicator = None
+                    return False
                     # raise TimeoutError(f"Stopped trying to connect to server after {int(waited)} seconds")
                 elif ENCRYPTED_COMMUNICATION is True:
                     exchange_keys_function(connector)
+                return True
 
             if blocking:
-                try_connect()
+                return try_connect()
             else:
                 threading.Thread(target=try_connect, name=f"Connector_{connector._id}").start()
-        assert isinstance(connector.communicator, Communicator)
-        return connector.communicator.is_connected()
 
     @staticmethod
     def close_connection(connector: Union['Connector', Type['SingleConnector']], blocking=True,
@@ -558,10 +565,10 @@ class Connector:
             if blocking:
                 waited = 0.
                 wait_time = 0.01
-                while connector.communicator.is_connected() and waited < timeout:
+                while connector.communicator and connector.communicator.is_connected() and waited < timeout:
                     time.sleep(wait_time)
                     waited += wait_time
-            connector.communicator: Optional[Communicator] = None
+            connector.communicator = None
 
     @staticmethod
     def is_connected(connector: Union['Connector', Type['SingleConnector']]) -> bool:
@@ -611,7 +618,8 @@ class SingleConnector(Connector):
     applications this class is sufficient and the :class:`MultiConnector` isn't needed."""
 
     @classmethod
-    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf"), exchange_keys_function=None) -> bool:
+    def connect(cls, addr: SocketAddress, blocking=True, timeout=float("inf"), exchange_keys_function=None) \
+            -> Optional[bool]:
         return super().connect(cls, addr, blocking, timeout, exchange_keys_function)
 
     @classmethod
@@ -632,10 +640,7 @@ class Functions(metaclass=MetaFunctionCommunicator):
         :attr:`__dict__` attribute.
 
             """
-    _connector: Optional[Communicator] = None
-
-    def __new__(cls, *args, **kwargs):
-        pass
+    _connector: Optional[Connector] = None
 
 
 class FunctionExecutionThread(threading.Thread):
